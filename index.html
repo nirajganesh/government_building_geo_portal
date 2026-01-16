@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="/assets/favicon.png" />
+  <title>DMP Geo-Portal</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container-fluid">
+            <div class="left-section">
+                <div class="main-logo me-3">
+                    <img src="assets/images/logo.png" alt="" width="65px" height="65px">
+                </div>
+                <div class="system-info">
+                    <h1>DMP Geo-Portal</h1>
+                    <p class="mb-0 d-none d-md-block">DMP State, Chhattisgarh</p>
+                </div>
+            </div>
+            <div class="right-section">
+                <div class="org-logo">
+                    <img src="assets/images/chips_logo.png" alt="">
+                </div>
+                <div class="logout-section" id="logout-btn" title="Logout">
+                    <svg width="27" height="27" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.59L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z" />
+                    </svg>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <!-- Horizontal Tools Panel -->
+    <div class="tools-panel">
+        <div class="container-fluid">
+            <div class="tools-list">
+                <div class="tool-item" data-panel="layers" id="layers-tool">
+                    <div class="tool-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="tool-info">
+                        <h4>Layers</h4>
+                    </div>
+                </div>
+
+                <div class="tool-item" data-panel="measurement" id="measurement-tool">
+                    <div class="tool-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="tool-info">
+                        <h4>Measure</h4>
+                    </div>
+                </div>
+
+                <div class="tool-item" data-panel="navigation" id="navigation-tool">
+                    <div class="tool-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="tool-info">
+                        <h4>Navigate</h4>
+                    </div>
+                </div>
+
+                <div class="tool-item" data-panel="print" id="print-tool">
+                    <div class="tool-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="tool-info">
+                        <h4>Print</h4>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div class="tool-divider"></div>
+
+                <!-- Analysis Tool -->
+                <div class="tool-item" data-panel="analysis" id="analysis-tool">
+                    <div class="tool-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="tool-info">
+                        <h4>Analysis</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+   <!-- Marquee Below Header -->
+    <div class="marquee-container">
+        <div class="marquee-content">
+            <div class="marquee">
+                The DMP State is dedicated to promoting and developing the rich cultural heritage, natural beauty, and adventure tourism destinations across Chhattisgarh. Our mission encompasses sustainable tourism development, heritage conservation, promoting local tourism attractions, supporting tourism infrastructure, and enhancing visitor experiences through integrated destination management and community-based tourism initiatives.
+            </div>
+            <div class="powered-by">
+                Powered by CGCOG,CHIPS
+            </div>
+        </div>
+    </div>
+
+    <!-- Map Section -->
+    <div class="map-section">
+        <!-- Slide Panel -->
+        <div class="slide-panel" id="slide-panel">
+            <div class="panel-header">
+                <div class="panel-title">
+                    <div class="panel-icon" id="panel-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+                            </path>
+                        </svg>
+                    </div>
+                    <h3 id="panel-title">Panel</h3>
+                </div>
+                <button class="close-panel" id="close-panel-btn">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div class="panel-content" id="panel-content">
+                <!-- Dynamic content will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Panel Templates Container (Hidden) -->
+        <div id="panel-templates" style="display: none;">
+            <!-- Layers Panel Template -->
+            <template id="layers-panel-template" class="panel-template">
+                <div class="tab-navigation">
+                    <button class="tab-button active" data-tab="departments">Tourism Layers</button>
+                    <button class="tab-button" data-tab="all-layers">All Layers</button>
+                </div>
+                
+                <div id="departments-tab" class="tab-content active">
+                    <div class="feature-group">
+                        <h4 class="layer-group-header">
+                            Tourism Attractions
+                            <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </h4>
+                        <div class="feature-items">
+                            <div class="feature-item">
+                                <div class="feature-info"><h5>Tourism Locations</h5></div>
+                                <div class="toggle-switch" data-layer="cg_tourism"><span class="toggle-knob"></span></div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-info"><h5>Monuments & Heritage Sites</h5></div>
+                                <div class="toggle-switch" data-layer="CG_monument"><span class="toggle-knob"></span></div>
+                            </div>
+                            <div class="feature-item">
+                                <div class="feature-info"><h5>Sports Infrastructure</h5></div>
+                                <div class="toggle-switch" data-layer="sports_infrastructure"><span class="toggle-knob"></span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="all-layers-tab" class="tab-content">
+                    <div class="layers-search mb-3">
+                        <input type="text" id="layer-search" class="form-control" placeholder="Search layers...">
+                    </div>
+                    <div class="layers-grid" id="all-layers-list">
+                        <!-- Dynamic layer list will be inserted here -->
+                    </div>
+                </div>
+            </template>
+
+            <!-- Measurement Panel Template -->
+            <template id="measurement-panel-template" class="panel-template">
+                <div class="measurement-panel">
+                    <div class="section-header mb-3">
+                        <h4 class="section-title">Measurement Type</h4>
+                    </div>
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" class="btn btn-outline-primary active" id="measure-distance-btn" data-type="distance">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:20px; height:20px; margin-right:5px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Distance
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="measure-area-btn" data-type="area">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:20px; height:20px; margin-right:5px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z"></path>
+                            </svg>
+                            Area
+                        </button>
+                    </div>
+
+                    <div class="section-header mb-2">
+                        <h4 class="section-title">Units</h4>
+                    </div>
+                    <select class="form-select mb-3" id="measurement-units">
+                        <option value="km">Kilometers / Square Kilometers</option>
+                        <option value="m">Meters / Square Meters</option>
+                        <option value="mi">Miles / Square Miles</option>
+                    </select>
+                    <div class="container mb-3">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <button class="btn btn-success w-100" id="start-measurement-btn">
+                                    Start Measurement
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-secondary w-100" id="stop-measurement-btn" disabled>
+                                    Stop Measurement
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-danger w-100" id="clear-measurements-btn">
+                                    Clear All
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-primary w-100" id="export-measurements-btn">
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section-header mb-2">
+                        <h4 class="section-title">Results</h4>
+                        <span class="badge bg-secondary" id="measurement-count">0 measurements</span>
+                    </div>
+                    <div id="measurementResults" class="results-container">
+                        <div class="text-center py-4">
+                            <div class="mb-3">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted">
+                                    <path d="M3 3v18h18"></path>
+                                    <path d="m19 9-5 5-4-4-3 3"></path>
+                                </svg>
+                            </div>
+                            <p class="mb-0 text-muted">No measurements yet</p>
+                            <small class="text-muted">Click <strong>"Start Measurement"</strong> to begin</small>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Navigation Panel Template -->
+            <template id="navigation-panel-template" class="panel-template">
+                <div class="navigation-panel">
+                    <div class="section-header mb-3">
+                        <h4 class="section-title">Navigate to Location</h4>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nav-district" class="form-label">Select District</label>
+                        <select class="form-select" id="nav-district">
+                            <option value="">Loading districts...</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nav-tehsil" class="form-label">Select Tehsil</label>
+                        <select class="form-select" id="nav-tehsil" disabled>
+                            <option value="">Select district first</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="nav-village" class="form-label">Select Village</label>
+                        <select class="form-select" id="nav-village" disabled>
+                            <option value="">Select tehsil first</option>
+                        </select>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-danger" id="clear-navigation-btn">
+                            Clear Selection
+                        </button>
+                    </div>
+
+                    <div class="mt-4 p-3 bg-light rounded" id="nav-info" style="display:none;">
+                        <h6 class="mb-2">Current Selection</h6>
+                        <div id="nav-details"></div>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Print Panel Template -->
+            <template id="print-panel-template">
+                <div class="print-panel">
+                    <div class="section-header mb-3">
+                        <h4 class="section-title">Export Settings</h4>
+                    </div>
+
+                    <!-- Page Format -->
+                    <div class="mb-3">
+                        <label for="print-format" class="form-label">Page Format</label>
+                        <select class="form-select" id="print-format">
+                            <optgroup label="ISO A Series">
+                                <option value="A0">A0 (1189 × 841 mm) - Largest Poster</option>
+                                <option value="A1">A1 (841 × 594 mm) - Large Poster</option>
+                                <option value="A2">A2 (594 × 420 mm) - Medium Poster</option>
+                                <option value="A3">A3 (420 × 297 mm) - Standard Poster</option>
+                                <option value="A4" selected>A4 (297 × 210 mm) - Standard Letter</option>
+                                <option value="A5">A5 (210 × 148 mm) - Half A4</option>
+                                <option value="A6">A6 (148 × 105 mm) - Postcard</option>
+                            </optgroup>
+                            <optgroup label="ISO B Series">
+                                <option value="B4">B4 (353 × 250 mm)</option>
+                                <option value="B5">B5 (250 × 176 mm)</option>
+                            </optgroup>
+                            <optgroup label="North American">
+                                <option value="Letter">Letter (279 × 216 mm) - US Standard</option>
+                                <option value="Legal">Legal (356 × 216 mm) - US Legal</option>
+                                <option value="Tabloid">Tabloid (432 × 279 mm) - 11×17"</option>
+                                <option value="Ledger">Ledger (432 × 279 mm) - Same as Tabloid</option>
+                                <option value="Executive">Executive (267 × 184 mm)</option>
+                            </optgroup>
+                            <optgroup label="Large Format">
+                                <option value="Poster">Poster (610 × 914 mm) - 24×36"</option>
+                                <option value="Banner">Banner (914 × 305 mm) - Wide Banner</option>
+                            </optgroup>
+                        </select>
+                        <small class="text-muted d-block mt-1">
+                            Choose from 17 different page formats
+                        </small>
+                    </div>
+
+                    <!-- Orientation -->
+                    <div class="mb-3">
+                        <label class="form-label">Orientation</label>
+                        <div class="btn-group w-100" role="group">
+                            <button type="button" class="btn btn-outline-primary active" id="orientation-landscape" data-orientation="landscape">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-right:5px;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h16M4 19h16M9 12h6"></path>
+                                </svg>
+                                Landscape
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="orientation-portrait" data-orientation="portrait">
+                                <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-right:5px;">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 4h14M5 20h14M12 9v6"></path>
+                                </svg>
+                                Portrait
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Resolution -->
+                    <div class="mb-3">
+                        <label for="print-resolution" class="form-label">Quality (DPI)</label>
+                        <select class="form-select" id="print-resolution">
+                            <option value="150">Good Quality (150 DPI)</option>
+                            <option value="300" selected>High Quality (300 DPI)</option>
+                            <option value="450">Premium Quality (450 DPI)</option>
+                            <option value="600">Ultra HD (600 DPI)</option>
+                            <option value="800">Extreme Quality (800 DPI)</option>
+                            <option value="1000">Maximum Quality (1000 DPI)</option>
+                        </select>
+                        <small class="text-muted d-block mt-1">
+                            Higher DPI = Better quality but larger file size
+                        </small>
+                    </div>
+
+                    <!-- Map Title -->
+                    <div class="mb-3">
+                        <label for="print-title" class="form-label">Map Title</label>
+                        <input type="text" class="form-control" id="print-title" value="DMP Geo-Portal Map" placeholder="Enter map title">
+                    </div>
+
+                    <!-- Include Options -->
+                    <div class="mb-3">
+                        <label class="form-label">Include in Export</label>
+                        <div class="print-options">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-title" checked>
+                                <label class="form-check-label" for="include-title">Title</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-scale" checked>
+                                <label class="form-check-label" for="include-scale">Scale Bar</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-date" checked>
+                                <label class="form-check-label" for="include-date">Date & Time</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-coordinates" checked>
+                                <label class="form-check-label" for="include-coordinates">Coordinates</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="include-legend" checked>
+                                <label class="form-check-label" for="include-legend">Map Legend</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Preview -->
+                    <div class="mb-3">
+                        <label class="form-label">Preview</label>
+                        <div id="print-preview" class="print-preview">
+                            <div class="preview-content">
+                                <span class="text-muted">Preview will appear here</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Buttons -->
+                    <div class="section-header mb-2">
+                        <h4 class="section-title">Export Options</h4>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" id="export-map-btn">📥 Export as PNG</button>
+                        <button class="btn btn-primary" id="export-jpeg-btn">📥 Export as JPEG</button>
+                        <button class="btn btn-outline-secondary" id="reset-print-btn">🔄 Reset Settings</button>
+                    </div>
+
+                    <!-- Info Note -->
+                    <div class="alert alert-info mt-3" style="font-size: 12px;">
+                        <strong>📊 Resolution Examples @ 600 DPI:</strong>
+                        <ul class="mb-0 mt-2" style="font-size: 11px;">
+                            <li><strong>A4:</strong> 7016 × 4961 px (34.8 MP)</li>
+                            <li><strong>A3:</strong> 9921 × 7016 px (69.6 MP)</li>
+                            <li><strong>A2:</strong> 14043 × 9921 px (139.3 MP)</li>
+                            <li><strong>A1:</strong> 19843 × 14043 px (278.6 MP)</li>
+                            <li><strong>A0:</strong> 28087 × 19843 px (557.4 MP)</li>
+                            <li><strong>Poster:</strong> 14409 × 21614 px (311.4 MP)</li>
+                        </ul>
+                        <small class="mt-2 d-block"><strong>💡 Tip:</strong> 600 DPI provides professional print quality for all formats!</small>
+                    </div>
+                </div>
+            </template>
+
+            <!-- Analysis Panel Template -->
+            <template id="analysis-panel-template">
+                <div class="analysis-panel">
+                    <div class="section-header mb-3">
+                        <h4 class="section-title">Spatial Analysis Tools</h4>
+                    </div>
+                    
+                    <div class="btn-group w-100 mb-3" role="group">
+                        <button type="button" class="btn btn-outline-primary active" id="analysis-buffer-btn" data-type="buffer">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px; height:18px; margin-right:5px;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <circle cx="12" cy="12" r="6"></circle>
+                            </svg>
+                            Buffer
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="analysis-proximity-btn" data-type="proximity">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px; height:18px; margin-right:5px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                            </svg>
+                            Proximity
+                        </button>
+                        <button type="button" class="btn btn-outline-primary" id="analysis-statistics-btn" data-type="statistics">
+                            <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px; height:18px; margin-right:5px;">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                            </svg>
+                            Stats
+                        </button>
+                    </div>
+
+                    <!-- Buffer Analysis Options -->
+                    <div id="buffer-options" class="analysis-options">
+                        <div class="section-header mb-2">
+                            <h4 class="section-title">Buffer Analysis</h4>
+                        </div>
+                        <p class="text-muted small mb-3">Create buffer zones around selected features to analyze proximity and impact areas.</p>
+                        
+                        <div class="mb-3">
+                            <label for="buffer-distance" class="form-label">Buffer Distance</label>
+                            <input type="number" class="form-control" id="buffer-distance" value="1000" min="1">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="buffer-units" class="form-label">Units</label>
+                            <select class="form-select" id="buffer-units">
+                                <option value="m">Meters</option>
+                                <option value="km">Kilometers</option>
+                                <option value="mi">Miles</option>
+                                <option value="ft">Feet</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="buffer-layer" class="form-label">Select Layer</label>
+                            <select class="form-select" id="buffer-layer">
+                                <option value="">Choose a layer...</option>
+                                <option value="cg_tourism">Tourism Locations</option>
+                                <option value="CG_monument">Monuments</option>
+                                <option value="sports_infrastructure">Sports Infrastructure</option>
+                                <option value="cg_school">Schools</option>
+                                <option value="district_hospitals">Hospitals</option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info" style="font-size: 12px;">
+                            <strong>ℹ️ How it works:</strong> Buffer analysis creates zones around features to identify areas within a specific distance. Useful for impact assessment and proximity analysis.
+                        </div>
+                    </div>
+
+                    <!-- Proximity Analysis Options -->
+                    <div id="proximity-options" class="analysis-options d-none">
+                        <div class="section-header mb-2">
+                            <h4 class="section-title">Proximity Analysis</h4>
+                        </div>
+                        <p class="text-muted small mb-3">Find features within a specified distance from a point of interest.</p>
+                        
+                        <div class="mb-3">
+                            <label for="proximity-distance" class="form-label">Search Radius</label>
+                            <input type="number" class="form-control" id="proximity-distance" value="5000" min="1">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="proximity-units" class="form-label">Units</label>
+                            <select class="form-select" id="proximity-units">
+                                <option value="m">Meters</option>
+                                <option value="km" selected>Kilometers</option>
+                                <option value="mi">Miles</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="proximity-target" class="form-label">Target Layer</label>
+                            <select class="form-select" id="proximity-target">
+                                <option value="">Choose a layer...</option>
+                                <option value="cg_tourism">Tourism Locations</option>
+                                <option value="CG_monument">Monuments</option>
+                                <option value="sports_infrastructure">Sports Infrastructure</option>
+                                <option value="cg_school">Schools</option>
+                                <option value="district_hospitals">Hospitals</option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info" style="font-size: 12px;">
+                            <strong>ℹ️ How it works:</strong> Click on the map to select a point, then find all features within the specified radius. Great for accessibility studies.
+                        </div>
+                    </div>
+
+                    <!-- Statistical Analysis Options -->
+                    <div id="statistics-options" class="analysis-options d-none">
+                        <div class="section-header mb-2">
+                            <h4 class="section-title">Statistical Analysis</h4>
+                        </div>
+                        <p class="text-muted small mb-3">Generate statistical summaries and reports for selected layers.</p>
+                        
+                        <div class="mb-3">
+                            <label for="statistics-layer" class="form-label">Select Layer</label>
+                            <select class="form-select" id="statistics-layer">
+                                <option value="">Choose a layer...</option>
+                                <option value="cg_dist">Districts</option>
+                                <option value="cg_tehsil">Tehsils</option>
+                                <option value="cg_village">Villages</option>
+                                <option value="cg_tourism">Tourism Locations</option>
+                                <option value="cg_school">Schools</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Statistics to Calculate</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="stat-count" checked>
+                                <label class="form-check-label" for="stat-count">Feature Count</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="stat-density" checked>
+                                <label class="form-check-label" for="stat-density">Spatial Density</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="stat-distribution" checked>
+                                <label class="form-check-label" for="stat-distribution">Distribution Pattern</label>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-info" style="font-size: 12px;">
+                            <strong>ℹ️ How it works:</strong> Analyze spatial patterns and generate statistical reports for better decision-making and planning.
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="container mt-3">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <button class="btn btn-success w-100" id="run-analysis-btn">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px; height:18px; margin-right:5px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                    </svg>
+                                    Run Analysis
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-danger w-100" id="clear-analysis-btn">
+                                    Clear Results
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-primary w-100" id="export-analysis-btn">
+                                    Export Results
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Container -->
+                    <div class="mt-4">
+                        <div class="section-header mb-2">
+                            <h4 class="section-title">Analysis Results</h4>
+                        </div>
+                        <div id="analysis-results" class="results-container">
+                            <div class="text-center py-4">
+                                <div class="mb-3">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted">
+                                        <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                                    </svg>
+                                </div>
+                                <p class="mb-0 text-muted">No analysis performed yet</p>
+                                <small class="text-muted">Configure settings and click <strong>"Run Analysis"</strong></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <!-- Legend Panel -->
+        <div class="legend-panel" id="legend-panel">
+            <div class="legend-header">
+                <div class="legend-icon">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                        </path>
+                    </svg>
+                </div>
+                <h3>Map Legend</h3>
+                <button class="legend-close" id="legend-close-btn">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
+                </button>
+            </div>
+            <div class="legend-content" id="legend-content">
+                <div class="no-legend">
+                    <p>No active layers selected</p>
+                    <p>Enable layers to view their legends</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="map-container" id="map-container">
+            <div id="map"></div>
+
+            <!-- Map Controls -->
+            <div class="map-controls">
+                <div class="map-control" id="fullscreen-btn" title="Toggle Fullscreen">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4">
+                        </path>
+                    </svg>
+                </div>
+                <div class="map-control" id="reset-view-btn" title="Reset View">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path>
+                    </svg>
+                </div>
+                <div class="map-control" id="my-location-btn" title="My Location">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z">
+                        </path>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- Basemap Changer -->
+            <div class="basemap-changer collapsed" id="basemap-changer">
+                <div class="basemap-toggle active" id="basemap-main-toggle">
+                    <div class="basemap-thumbnail thumb-osm"></div>
+                    <span class="basemap-label">Street Map</span>
+                    <svg class="icon dropdown-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                </div>
+
+                <div class="basemap-options">
+                    <div class="basemap-toggle" data-basemap="osm" id="basemap-osm">
+                        <div class="basemap-thumbnail thumb-osm"></div>
+                        <span class="basemap-label">Street Map</span>
+                    </div>
+                    <div class="basemap-toggle" data-basemap="satellite" id="basemap-satellite">
+                        <div class="basemap-thumbnail thumb-satellite"></div>
+                        <span class="basemap-label">Satellite</span>
+                    </div>
+                    <div class="basemap-toggle" data-basemap="terrain" id="basemap-terrain">
+                        <div class="basemap-thumbnail thumb-terrain"></div>
+                        <span class="basemap-label">Terrain</span>
+                    </div>
+                    <div class="basemap-toggle" data-basemap="hybrid" id="basemap-hybrid">
+                        <div class="basemap-thumbnail thumb-hybrid"></div>
+                        <span class="basemap-label">Hybrid</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation for Mobile/Tablet -->
+    <nav class="bottom-navigation">
+        <ul class="bottom-nav-list">
+            <!-- Layers Tool -->
+            <li class="bottom-nav-item" data-panel="layers">
+                <div class="bottom-nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Layers</span>
+            </li>
+
+            <!-- Measurement Tool -->
+            <li class="bottom-nav-item" data-panel="measurement">
+                <div class="bottom-nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 3L3 21"/>
+                        <path d="M21 9L9 21"/>
+                        <path d="M21 15L15 21"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Measure</span>
+            </li>
+
+            <!-- Navigation Tool -->
+            <li class="bottom-nav-item" data-panel="navigation">
+                <div class="bottom-nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="3 11 22 2 13 21 11 13 3 11"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Navigate</span>
+            </li>
+
+            <!-- Print Tool -->
+            <li class="bottom-nav-item" data-panel="print">
+                <div class="bottom-nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 6 2 18 2 18 9"/>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <rect x="6" y="14" width="12" height="8"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Print</span>
+            </li>
+
+            <!-- Analysis Tool -->
+            <li class="bottom-nav-item" data-panel="analysis">
+                <div class="bottom-nav-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                    </svg>
+                </div>
+                <span class="bottom-nav-label">Analysis</span>
+            </li>
+        </ul>
+    </nav>
+    
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script type="module" src="main.js"></script>
+
+    <!-- Scripts End-->
+</body>
+
+</html>

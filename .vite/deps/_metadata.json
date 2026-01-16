@@ -1,0 +1,208 @@
+{
+  "hash": "58acf568",
+  "configHash": "1913610e",
+  "lockfileHash": "e0cfb515",
+  "browserHash": "0f27e6b6",
+  "optimized": {
+    "ol": {
+      "src": "../../node_modules/ol/index.js",
+      "file": "ol.js",
+      "fileHash": "062d751d",
+      "needsInterop": false
+    },
+    "ol/layer/Tile": {
+      "src": "../../node_modules/ol/layer/Tile.js",
+      "file": "ol_layer_Tile.js",
+      "fileHash": "ca09c3ed",
+      "needsInterop": false
+    },
+    "ol/source/OSM": {
+      "src": "../../node_modules/ol/source/OSM.js",
+      "file": "ol_source_OSM.js",
+      "fileHash": "4f491817",
+      "needsInterop": false
+    },
+    "ol/layer/Image": {
+      "src": "../../node_modules/ol/layer/Image.js",
+      "file": "ol_layer_Image.js",
+      "fileHash": "ed49582c",
+      "needsInterop": false
+    },
+    "ol/layer/Vector": {
+      "src": "../../node_modules/ol/layer/Vector.js",
+      "file": "ol_layer_Vector.js",
+      "fileHash": "89d5c8a2",
+      "needsInterop": false
+    },
+    "ol/layer/Group": {
+      "src": "../../node_modules/ol/layer/Group.js",
+      "file": "ol_layer_Group.js",
+      "fileHash": "a88b9eb5",
+      "needsInterop": false
+    },
+    "ol/source/XYZ": {
+      "src": "../../node_modules/ol/source/XYZ.js",
+      "file": "ol_source_XYZ.js",
+      "fileHash": "6e4da3ea",
+      "needsInterop": false
+    },
+    "ol/source/ImageWMS": {
+      "src": "../../node_modules/ol/source/ImageWMS.js",
+      "file": "ol_source_ImageWMS.js",
+      "fileHash": "7712c434",
+      "needsInterop": false
+    },
+    "ol/source/Vector": {
+      "src": "../../node_modules/ol/source/Vector.js",
+      "file": "ol_source_Vector.js",
+      "fileHash": "dc1b27ad",
+      "needsInterop": false
+    },
+    "ol/style": {
+      "src": "../../node_modules/ol/style.js",
+      "file": "ol_style.js",
+      "fileHash": "da6bf321",
+      "needsInterop": false
+    },
+    "ol/control": {
+      "src": "../../node_modules/ol/control.js",
+      "file": "ol_control.js",
+      "fileHash": "8f3d2f5c",
+      "needsInterop": false
+    },
+    "ol/proj": {
+      "src": "../../node_modules/ol/proj.js",
+      "file": "ol_proj.js",
+      "fileHash": "add95aed",
+      "needsInterop": false
+    },
+    "ol/format/GeoJSON": {
+      "src": "../../node_modules/ol/format/GeoJSON.js",
+      "file": "ol_format_GeoJSON.js",
+      "fileHash": "3b3c96bf",
+      "needsInterop": false
+    },
+    "ol/Feature": {
+      "src": "../../node_modules/ol/Feature.js",
+      "file": "ol_Feature.js",
+      "fileHash": "f7487721",
+      "needsInterop": false
+    },
+    "ol/geom/Point": {
+      "src": "../../node_modules/ol/geom/Point.js",
+      "file": "ol_geom_Point.js",
+      "fileHash": "c913c096",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-ZC2TXZTE": {
+      "file": "chunk-ZC2TXZTE.js"
+    },
+    "chunk-FZVHUTRB": {
+      "file": "chunk-FZVHUTRB.js"
+    },
+    "chunk-ZYAQTXBL": {
+      "file": "chunk-ZYAQTXBL.js"
+    },
+    "chunk-HZGXDQTO": {
+      "file": "chunk-HZGXDQTO.js"
+    },
+    "chunk-V2B4IIEL": {
+      "file": "chunk-V2B4IIEL.js"
+    },
+    "chunk-PGNYMJJ7": {
+      "file": "chunk-PGNYMJJ7.js"
+    },
+    "chunk-RE46EP5S": {
+      "file": "chunk-RE46EP5S.js"
+    },
+    "chunk-BSK6HNTN": {
+      "file": "chunk-BSK6HNTN.js"
+    },
+    "chunk-J64AKP7Q": {
+      "file": "chunk-J64AKP7Q.js"
+    },
+    "chunk-CNNHRKUZ": {
+      "file": "chunk-CNNHRKUZ.js"
+    },
+    "chunk-3TH2XOAI": {
+      "file": "chunk-3TH2XOAI.js"
+    },
+    "chunk-MLRGRSJU": {
+      "file": "chunk-MLRGRSJU.js"
+    },
+    "chunk-HM3IY3H4": {
+      "file": "chunk-HM3IY3H4.js"
+    },
+    "chunk-HSZTLWE6": {
+      "file": "chunk-HSZTLWE6.js"
+    },
+    "chunk-4JSYGO6X": {
+      "file": "chunk-4JSYGO6X.js"
+    },
+    "chunk-AEV7AHIC": {
+      "file": "chunk-AEV7AHIC.js"
+    },
+    "chunk-QKX5Z7JY": {
+      "file": "chunk-QKX5Z7JY.js"
+    },
+    "chunk-IHSC4UPR": {
+      "file": "chunk-IHSC4UPR.js"
+    },
+    "chunk-VLTZGDTC": {
+      "file": "chunk-VLTZGDTC.js"
+    },
+    "chunk-FMNGDYBL": {
+      "file": "chunk-FMNGDYBL.js"
+    },
+    "chunk-ZFKN7NCC": {
+      "file": "chunk-ZFKN7NCC.js"
+    },
+    "chunk-E7RD3QDH": {
+      "file": "chunk-E7RD3QDH.js"
+    },
+    "chunk-6BEGLKTO": {
+      "file": "chunk-6BEGLKTO.js"
+    },
+    "chunk-Q5EEVLOT": {
+      "file": "chunk-Q5EEVLOT.js"
+    },
+    "chunk-2R5FCMUD": {
+      "file": "chunk-2R5FCMUD.js"
+    },
+    "chunk-LGM7OQVS": {
+      "file": "chunk-LGM7OQVS.js"
+    },
+    "chunk-OIBWFOTW": {
+      "file": "chunk-OIBWFOTW.js"
+    },
+    "chunk-UY3IBMKS": {
+      "file": "chunk-UY3IBMKS.js"
+    },
+    "chunk-4QRYDI4M": {
+      "file": "chunk-4QRYDI4M.js"
+    },
+    "chunk-Z2HPIUZL": {
+      "file": "chunk-Z2HPIUZL.js"
+    },
+    "chunk-MOGRN7JF": {
+      "file": "chunk-MOGRN7JF.js"
+    },
+    "chunk-SDXVV5Z4": {
+      "file": "chunk-SDXVV5Z4.js"
+    },
+    "chunk-KSVQUBRU": {
+      "file": "chunk-KSVQUBRU.js"
+    },
+    "chunk-HTT3M4KG": {
+      "file": "chunk-HTT3M4KG.js"
+    },
+    "chunk-ZYDEI2JY": {
+      "file": "chunk-ZYDEI2JY.js"
+    },
+    "chunk-R5DNHDJW": {
+      "file": "chunk-R5DNHDJW.js"
+    }
+  }
+}
