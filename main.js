@@ -56,6 +56,16 @@ import {
     getAvailableFormats
 } from './modules/print.js';
 
+import {
+    populateDepartmentDropdown,
+    searchBuildings,
+    clearBuildingResults,
+    exportBuildingData,
+    toggleBuildingLayer,
+    createBuildingWMSLayer,
+    createBuildingVectorLayer
+} from './modules/building.js';
+
 // ==================== CONFIGURATION ====================
 export const API_CONFIG = {
     baseUrl: 'https://cggis.cgstate.gov.in/giscg',
@@ -140,6 +150,7 @@ export const LAYER_CONFIGS = [
     { id: 'rto_checkpost', wms: 'cg_rto_checkpost', name: 'RTO Checkposts' },
     { id: 'cg_tourism', wms: 'cg_tourism_location', name: 'Tourism Locations' },
     { id: 'CG_monument', wms: 'CG_monument', name: 'Monuments' },
+    { id: 'Government_Buildings', wms: 'Government_Buildings', name: 'Government Building' },
     { id: 'sports_infrastructure', wms: 'cg_sports_infrastrcture', name: 'Sports Infrastructure' },
     { id: 'CG_Bank_Branches', wms: 'CG_Bank_Branches', name: 'CG Bank Branches' },
     { id: 'ippb_centers', wms: 'ippb_centers', name: 'IPPB Centers' },
@@ -574,7 +585,8 @@ const PANEL_TEMPLATE_MAP = {
     'measurement': 'measurement-panel-template',
     'navigation': 'navigation-panel-template',
     'print': 'print-panel-template',
-    'analysis': 'analysis-panel-template'
+    'analysis': 'analysis-panel-template',
+    'building': 'building-panel-template'
 };
 
 const PANEL_TITLES = {
@@ -582,7 +594,8 @@ const PANEL_TITLES = {
     'measurement': 'Measurement Tools',
     'navigation': 'Navigation',
     'print': 'Print Map',
-    'analysis': 'Spatial Analysis'
+    'analysis': 'Spatial Analysis',
+    'building': 'Building Analysis'
 };
 
 const PANEL_ICONS = {
@@ -608,6 +621,9 @@ const PANEL_ICONS = {
                     <circle cx="12" cy="12" r="10"/>
                     <line x1="12" y1="8" x2="12" y2="12"/>
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>`,
+    'building': `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M3 21h18M3 7v14M21 7v14M9 7h6M9 11h6M9 15h6M9 19h6M5 3h14l2 4H3l2-4z"/>
                 </svg>`
 };
 
@@ -1106,6 +1122,8 @@ function setupPanelEventListeners(panelType) {
         setupPrintListeners();
     } else if (panelType === 'analysis') {
         setupAnalysisListeners();
+    } else if (panelType === 'building') {  
+        setupBuildingListeners();
     }
 }
 
@@ -1668,6 +1686,112 @@ function setupPrintListeners() {
     setTimeout(() => {
         updatePrintPreview();
     }, 100);
+}
+
+
+// Add this new function for building event listeners
+function setupBuildingListeners() {
+    // Populate department dropdown
+    populateDepartmentDropdown('building-department');
+
+    // Initialize building layers
+    createBuildingWMSLayer();
+    createBuildingVectorLayer();
+
+    const departmentSelect = document.getElementById('building-department');
+    const searchTermInput = document.getElementById('building-search-term');
+    const searchBtn = document.getElementById('search-buildings-btn');
+    const clearBtn = document.getElementById('clear-building-results-btn');
+    const exportBtn = document.getElementById('export-buildings-btn');
+    const wmsLayerCheckbox = document.getElementById('show-wms-layer');
+    const totalBuildingsEl = document.getElementById('total-buildings');
+    const selectedDeptNameEl = document.getElementById('selected-dept-name');
+
+    // Department selection
+    if (departmentSelect) {
+        departmentSelect.addEventListener('change', (e) => {
+            const selectedText = e.target.options[e.target.selectedIndex]?.text || 'None';
+            if (selectedDeptNameEl) {
+                selectedDeptNameEl.textContent = e.target.value ? selectedText : 'None';
+            }
+        });
+    }
+
+    // Search button
+    if (searchBtn) {
+        searchBtn.addEventListener('click', async () => {
+            const departmentId = departmentSelect?.value || '';
+            const searchTerm = searchTermInput?.value.trim() || '';
+
+            if (!departmentId && !searchTerm) {
+                showNotification('Please select a department or enter a search term', 'warning');
+                return;
+            }
+
+            try {
+                searchBtn.disabled = true;
+                searchBtn.innerHTML = `
+                    <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Searching...
+                `;
+
+                const data = await searchBuildings(departmentId, searchTerm);
+                
+                if (totalBuildingsEl) {
+                    totalBuildingsEl.textContent = data?.features?.length || 0;
+                }
+            } catch (error) {
+                console.error('Search error:', error);
+                showNotification('Search failed. Please try again.', 'error');
+            } finally {
+                searchBtn.disabled = false;
+                searchBtn.innerHTML = `
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px; height:18px; margin-right:5px;">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    Search Buildings
+                `;
+            }
+        });
+    }
+
+    // Clear button
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            clearBuildingResults();
+            
+            if (departmentSelect) departmentSelect.value = '';
+            if (searchTermInput) searchTermInput.value = 'महतारी';
+            if (totalBuildingsEl) totalBuildingsEl.textContent = '0';
+            if (selectedDeptNameEl) selectedDeptNameEl.textContent = 'None';
+        });
+    }
+
+    // Export button
+    if (exportBtn) {
+        exportBtn.addEventListener('click', () => {
+            exportBuildingData();
+        });
+    }
+
+    // WMS Layer toggle
+    if (wmsLayerCheckbox) {
+        wmsLayerCheckbox.addEventListener('change', (e) => {
+            toggleBuildingLayer(e.target.checked);
+        });
+        
+        // Set initial state
+        toggleBuildingLayer(wmsLayerCheckbox.checked);
+    }
+
+    // Allow Enter key in search input
+    if (searchTermInput) {
+        searchTermInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchBtn?.click();
+            }
+        });
+    }
 }
 
 // ==================== UTILITY FUNCTIONS ====================

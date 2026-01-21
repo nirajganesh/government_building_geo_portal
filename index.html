@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="/assets/favicon.png" />
-  <title>DMP Geo-Portal</title>
+  <title>P&RD Geo-Portal</title>
   <!-- Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <!-- Custom CSS -->
@@ -21,8 +21,8 @@
                     <img src="assets/images/logo.png" alt="" width="65px" height="65px">
                 </div>
                 <div class="system-info">
-                    <h1>DMP Geo-Portal</h1>
-                    <p class="mb-0 d-none d-md-block">DMP State, Chhattisgarh</p>
+                    <h1>P&RD Geo-Portal</h1>
+                    <p class="mb-0 d-none d-md-block">State, Chhattisgarh</p>
                 </div>
             </div>
             <div class="right-section">
@@ -100,7 +100,7 @@
                 <div class="tool-divider"></div>
 
                 <!-- Analysis Tool -->
-                <div class="tool-item" data-panel="analysis" id="analysis-tool">
+                <!-- <div class="tool-item" data-panel="analysis" id="analysis-tool">
                     <div class="tool-icon">
                         <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -111,7 +111,23 @@
                     <div class="tool-info">
                         <h4>Analysis</h4>
                     </div>
+                </div> -->
+
+                 <!-- Building Tool -->
+                <div class="tool-item" data-panel="building" id="building-tool">
+                    <div class="tool-icon">
+                        <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                    </div>
+                    <div class="tool-info">
+                        <h4>Building Analysis</h4>
+                    </div>
                 </div>
+
+
             </div>
         </div>
     </div>
@@ -160,31 +176,31 @@
             <!-- Layers Panel Template -->
             <template id="layers-panel-template" class="panel-template">
                 <div class="tab-navigation">
-                    <button class="tab-button active" data-tab="departments">Tourism Layers</button>
+                    <button class="tab-button active" data-tab="departments">Panchayat Layers</button>
                     <button class="tab-button" data-tab="all-layers">All Layers</button>
                 </div>
                 
                 <div id="departments-tab" class="tab-content active">
                     <div class="feature-group">
                         <h4 class="layer-group-header">
-                            Tourism Attractions
+                            Panchayat Attractions
                             <svg class="dropdown-arrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
                             </svg>
                         </h4>
                         <div class="feature-items">
                             <div class="feature-item">
-                                <div class="feature-info"><h5>Tourism Locations</h5></div>
-                                <div class="toggle-switch" data-layer="cg_tourism"><span class="toggle-knob"></span></div>
+                                <div class="feature-info"><h5>Government Building Locations</h5></div>
+                                <div class="toggle-switch" data-layer="Government_Buildings"><span class="toggle-knob"></span></div>
                             </div>
-                            <div class="feature-item">
+                            <!-- <div class="feature-item">
                                 <div class="feature-info"><h5>Monuments & Heritage Sites</h5></div>
                                 <div class="toggle-switch" data-layer="CG_monument"><span class="toggle-knob"></span></div>
                             </div>
                             <div class="feature-item">
                                 <div class="feature-info"><h5>Sports Infrastructure</h5></div>
                                 <div class="toggle-switch" data-layer="sports_infrastructure"><span class="toggle-knob"></span></div>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
                 </div>
@@ -647,6 +663,140 @@
                     </div>
                 </div>
             </template>
+
+
+            <!-- Building Analysis Panel Template -->
+            <template id="building-panel-template">
+                <div class="building-panel">
+                    <div class="section-header mb-3">
+                        <h4 class="section-title">Building Search & Analysis</h4>
+                    </div>
+                    
+                    <!-- Search Filters -->
+                    <div class="building-filters">
+                        <div class="mb-3">
+                            <label for="building-department" class="form-label">Select Department</label>
+                            <select class="form-select" id="building-department">
+                                <option value="">Loading departments...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="building-search-term" class="form-label">Search Term</label>
+                            <input 
+                                type="text" 
+                                class="form-control" 
+                                id="building-search-term" 
+                                placeholder="Enter search term (e.g., महतारी)"
+                                value="महतारी"
+                            >
+                            <small class="text-muted">Search in building names</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="show-wms-layer" checked>
+                                <label class="form-check-label" for="show-wms-layer">
+                                    Show All Government Buildings Layer
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="container mb-3">
+                        <div class="row g-2">
+                            <div class="col-12">
+                                <button class="btn btn-success w-100" id="search-buildings-btn">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:18px; height:18px; margin-right:5px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                    </svg>
+                                    Search Buildings
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-danger w-100" id="clear-building-results-btn">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-right:5px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                    </svg>
+                                    Clear
+                                </button>
+                            </div>
+                            <div class="col-6">
+                                <button class="btn btn-primary w-100" id="export-buildings-btn">
+                                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-right:5px;">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                    </svg>
+                                    Export CSV
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Info Alert -->
+                    <div class="alert alert-info mb-3" style="font-size: 12px;">
+                        <strong>ℹ️ How it works:</strong>
+                        <ul class="mb-0 mt-2" style="font-size: 11px;">
+                            <li><strong>Department Filter:</strong> Matches first 10 digits of Building ID (gb_id) with Department ID</li>
+                            <li><strong>Search Term:</strong> Finds buildings where the name contains the search term</li>
+                            <li><strong>Combined Search:</strong> Both filters work together for precise results</li>
+                        </ul>
+                    </div>
+
+                    <!-- Statistics -->
+                    <div class="building-stats mb-3">
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon">
+                                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+                                        </svg>
+                                    </div>
+                                    <div class="stat-info">
+                                        <div class="stat-label">Total Buildings</div>
+                                        <div class="stat-value" id="total-buildings">0</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="stat-card">
+                                    <div class="stat-icon">
+                                        <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </div>
+                                    <div class="stat-info">
+                                        <div class="stat-label">Department</div>
+                                        <div class="stat-value" id="selected-dept-name" style="font-size: 11px;">None</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Container -->
+                    <div class="mt-3">
+                        <div class="section-header mb-2">
+                            <h4 class="section-title">Search Results</h4>
+                            <span class="badge bg-secondary" id="building-count">0 buildings</span>
+                        </div>
+                        <div id="building-results" class="results-container">
+                            <div class="text-center py-4">
+                                <div class="mb-3">
+                                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="text-muted">
+                                        <path d="M3 21h18M3 7v14M21 7v14M9 7h6M9 11h6M9 15h6M9 19h6M5 3h14l2 4H3l2-4z"/>
+                                    </svg>
+                                </div>
+                                <p class="mb-0 text-muted">No results to display</p>
+                                <small class="text-muted">Select a department and click <strong>"Search Buildings"</strong> to begin</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </template>
+
+
         </div>
 
         <!-- Legend Panel -->
