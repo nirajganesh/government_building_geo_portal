@@ -13,6 +13,12 @@ import {
     exportToCSV
 } from '../main.js';
 
+import {
+    setCustomLegendItems,
+    getCustomLegendItems,
+    updateLegend
+} from './layers.js';
+
 // Building state management
 export const buildingState = {
     departments: [],
@@ -221,11 +227,14 @@ export function createBuildingVectorLayer() {
             return clone;
         },
         zIndex: 110,
-        name: 'building-highlights'
+        name: 'building-highlights' // Important: This name is used for click detection
     });
 
     if (mapState.instance) {
         mapState.instance.addLayer(vectorLayer);
+        
+        // Setup click listener after adding layer
+        setupBuildingClickListener();
     }
 }
 
@@ -312,6 +321,29 @@ export async function searchBuildings(departmentId, searchTerm) {
         displayBuildingsOnMap(data);
         
         updateBuildingResults(data.features || []);
+        
+        // Add Government Buildings to legend
+        if (data.features && data.features.length > 0) {
+            const existingLegendItems = getCustomLegendItems();
+            
+            // Check if Government Buildings legend already exists
+            const hasGovBuilding = existingLegendItems.some(item => 
+                item.label === 'Government Buildings'
+            );
+            
+            if (!hasGovBuilding) {
+                const newLegendItems = [
+                    ...existingLegendItems,
+                    {
+                        color: '#ef4444',
+                        label: 'Government Buildings',
+                        shape: 'circle'
+                    }
+                ];
+                setCustomLegendItems(newLegendItems);
+                updateLegend();
+            }
+        }
         
         return data;
     } catch (error) {
@@ -480,52 +512,196 @@ export function clearBuildingResults() {
         `;
     }
 
+    // Remove ALL building-related legends
+    const existingLegendItems = getCustomLegendItems();
+    const filteredLegendItems = existingLegendItems.filter(item => 
+        item.label !== 'Government Buildings' && 
+        item.label !== 'All Government Buildings (WMS)'
+    );
+    setCustomLegendItems(filteredLegendItems);
+    updateLegend();
+
     showNotification('Results cleared', 'info');
 }
 
 // ==================== EXPORT BUILDING DATA ====================
-export function exportBuildingData() {
+export function exportBuildingAsExcel() {
     if (!buildingState.filteredBuildings || buildingState.filteredBuildings.length === 0) {
         showNotification('No data to export', 'warning');
         return;
     }
 
-    const headers = [
-        'Building ID',
-        'Building Name',
-        'District',
-        'Tehsil',
-        'Village',
-        'Type',
-        'Year Commissioned',
-        'Floors',
-        'Height',
-        'Use of Building',
-        'Ownership',
-        'Address'
-    ];
+    try {
+        // Prepare data for Excel
+        const data = buildingState.filteredBuildings.map((feature, index) => {
+            const props = feature.properties || {};
+            return {
+                'S.No': index + 1,
+                'Building ID': props.gb_id || '-',
+                'Building Name': props.name_building || '-',
+                'District': props.dist_name || '-',
+                'Block': props.block_name || '-',
+                'Tehsil': props.tehsil_name || '-',
+                'Gram Panchayat': props.gram_panchayat_name || '-',
+                'Village': props.village_name || '-',
+                'Type': props.type_building || '-',
+                'Year Commissioned': props.year_comm || '-',
+                'Floors': props.floors || '-',
+                'Height (m)': props.height || '-',
+                'Is Shared': props.is_shared || '-',
+                'Use of Building': props.use_of_building || '-',
+                'Ownership': props.ownership || '-',
+                'Sitting Floor': props.sitting_floor || '-',
+                'Area Type': props.area_typ || '-',
+                'Pin Code': props.pincode || '-',
+                'Address': props.address || '-',
+                'UID': props.uid || '-',
+                'Floors Covered by Office': props.floors_covered_by_office || '-'
+            };
+        });
 
-    const rowMapper = (feature) => {
-        const props = feature.properties || {};
-        return [
-            props.gb_id || '',
-            props.name_building || '',
-            props.dist_name || '',
-            props.tehsil_name || '',
-            props.village_name || '',
-            props.type_building || '',
-            props.year_comm || '',
-            props.floors || '',
-            props.height || '',
-            props.use_of_building || '',
-            props.ownership || '',
-            props.address || ''
+        // Create worksheet
+        const ws = XLSX.utils.json_to_sheet(data);
+
+        // Set column widths
+        const colWidths = [
+            { wch: 6 },  // S.No
+            { wch: 18 }, // Building ID
+            { wch: 35 }, // Building Name
+            { wch: 15 }, // District
+            { wch: 15 }, // Block
+            { wch: 15 }, // Tehsil
+            { wch: 20 }, // Gram Panchayat
+            { wch: 20 }, // Village
+            { wch: 18 }, // Type
+            { wch: 12 }, // Year
+            { wch: 8 },  // Floors
+            { wch: 10 }, // Height
+            { wch: 10 }, // Is Shared
+            { wch: 20 }, // Use
+            { wch: 15 }, // Ownership
+            { wch: 12 }, // Sitting Floor
+            { wch: 12 }, // Area Type
+            { wch: 10 }, // Pin Code
+            { wch: 40 }, // Address
+            { wch: 15 }, // UID
+            { wch: 20 }  // Floors Covered
         ];
-    };
+        ws['!cols'] = colWidths;
 
-    const filename = `building_analysis_${new Date().toISOString().split('T')[0]}.csv`;
-    
-    exportToCSV(buildingState.filteredBuildings, filename, headers, rowMapper);
+        // Create workbook
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Building Report');
+
+        // Generate filename
+        const filename = `Building_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
+
+        // Save file
+        XLSX.writeFile(wb, filename);
+
+        showNotification('Excel report generated successfully!', 'success');
+    } catch (error) {
+        console.error('Error exporting to Excel:', error);
+        showNotification('Failed to generate Excel report', 'error');
+    }
+}
+
+export function exportBuildingAsPDF() {
+    if (!buildingState.filteredBuildings || buildingState.filteredBuildings.length === 0) {
+        showNotification('No data to export', 'warning');
+        return;
+    }
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape A4
+
+        // Add title
+        doc.setFontSize(18);
+        doc.setTextColor(119, 104, 174);
+        doc.text('Building Analysis Report', 14, 20);
+
+        // Add metadata
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Generated: ${new Date().toLocaleString()}`, 14, 28);
+        doc.text(`Total Buildings: ${buildingState.filteredBuildings.length}`, 14, 33);
+
+        // Get selected department name
+        const deptSelect = document.getElementById('building-department');
+        const deptName = deptSelect ? deptSelect.options[deptSelect.selectedIndex]?.text : 'All Departments';
+        if (deptName && deptName !== '-- Select Department --') {
+            doc.text(`Department: ${deptName}`, 14, 38);
+        }
+
+        // Prepare table data
+        const tableData = buildingState.filteredBuildings.map((feature, index) => {
+            const props = feature.properties || {};
+            return [
+                index + 1,
+                props.gb_id || '-',
+                props.name_building || '-',
+                props.dist_name || '-',
+                props.tehsil_name || '-',
+                props.village_name || '-',
+                props.type_building || '-',
+                props.year_comm || '-'
+            ];
+        });
+
+        // Add table
+        doc.autoTable({
+            startY: 45,
+            head: [['#', 'Building ID', 'Building Name', 'District', 'Tehsil', 'Village', 'Type', 'Year']],
+            body: tableData,
+            theme: 'grid',
+            styles: {
+                fontSize: 8,
+                cellPadding: 2,
+                overflow: 'linebreak'
+            },
+            headStyles: {
+                fillColor: [119, 104, 174],
+                textColor: [255, 255, 255],
+                fontStyle: 'bold',
+                halign: 'center'
+            },
+            columnStyles: {
+                0: { cellWidth: 10, halign: 'center' },
+                1: { cellWidth: 30 },
+                2: { cellWidth: 60 },
+                3: { cellWidth: 30 },
+                4: { cellWidth: 30 },
+                5: { cellWidth: 35 },
+                6: { cellWidth: 35 },
+                7: { cellWidth: 20, halign: 'center' }
+            },
+            margin: { left: 14, right: 14 },
+            didDrawPage: function (data) {
+                // Footer
+                const pageCount = doc.internal.getNumberOfPages();
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(
+                    `Page ${data.pageNumber} of ${pageCount}`,
+                    doc.internal.pageSize.width / 2,
+                    doc.internal.pageSize.height - 10,
+                    { align: 'center' }
+                );
+            }
+        });
+
+        // Generate filename
+        const filename = `Building_Report_${new Date().toISOString().split('T')[0]}.pdf`;
+
+        // Save PDF
+        doc.save(filename);
+
+        showNotification('PDF report generated successfully!', 'success');
+    } catch (error) {
+        console.error('Error exporting to PDF:', error);
+        showNotification('Failed to generate PDF report. Please ensure required libraries are loaded.', 'error');
+    }
 }
 
 // ==================== TOGGLE WMS LAYER ====================
@@ -540,4 +716,65 @@ export function toggleBuildingLayer(show) {
     if (buildingState.buildingLayer) {
         buildingState.buildingLayer.setVisible(show);
     }
+}
+
+
+
+// ==================== SETUP MAP CLICK LISTENER ====================
+export function setupBuildingClickListener() {
+    if (!mapState.instance) {
+        console.warn('Map instance not available');
+        return;
+    }
+
+    // Add click event to map
+    mapState.instance.on('singleclick', function(evt) {
+        // Check if we clicked on a building feature
+        const feature = mapState.instance.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {
+            // Only handle building highlights layer
+            if (layer && layer.get('name') === 'building-highlights') {
+                return feature;
+            }
+        });
+
+        if (feature) {
+            showBuildingDetails(feature);
+        }
+    });
+
+    // Change cursor on hover
+    mapState.instance.on('pointermove', function(evt) {
+        const pixel = evt.pixel;
+        const hit = mapState.instance.hasFeatureAtPixel(pixel, {
+            layerFilter: function(layer) {
+                return layer.get('name') === 'building-highlights';
+            }
+        });
+        
+        mapState.instance.getTargetElement().style.cursor = hit ? 'pointer' : '';
+    });
+}
+
+// ==================== SHOW BUILDING DETAILS IN MODAL ====================
+export function showBuildingDetails(feature) {
+    if (!feature) return;
+
+    const props = feature.getProperties();
+    
+    // Update modal fields
+    document.getElementById('detail-building-id').textContent = props.gb_id || '-';
+    document.getElementById('detail-building-name').textContent = props.name_building || '-';
+    document.getElementById('detail-type').textContent = props.type_building || '-';
+    document.getElementById('detail-ownership').textContent = props.ownership || '-';
+    document.getElementById('detail-village').textContent = props.village_name || '-';
+    document.getElementById('detail-tehsil').textContent = props.tehsil_name || '-';
+    document.getElementById('detail-district').textContent = props.dist_name || '-';
+    document.getElementById('detail-year').textContent = props.year_comm || '-';
+    document.getElementById('detail-floors').textContent = props.floors || '-';
+    document.getElementById('detail-use').textContent = props.use_of_building || '-';
+    document.getElementById('detail-address').textContent = props.address || '-';
+
+    // Show modal
+    const detailsModal = new bootstrap.Modal(document.getElementById('buildingDetailsModal'));
+    detailsModal.show();
 }

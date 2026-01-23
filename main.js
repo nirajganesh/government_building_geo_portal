@@ -60,10 +60,13 @@ import {
     populateDepartmentDropdown,
     searchBuildings,
     clearBuildingResults,
-    exportBuildingData,
+    exportBuildingAsExcel,
+    exportBuildingAsPDF,
     toggleBuildingLayer,
     createBuildingWMSLayer,
-    createBuildingVectorLayer
+    createBuildingVectorLayer,
+    setupBuildingClickListener,
+    buildingState
 } from './modules/building.js';
 
 // ==================== CONFIGURATION ====================
@@ -785,7 +788,8 @@ export function openPanel(panelType) {
         'measurement': 'Measurement Tools',
         'navigation': 'Navigation',
         'print': 'Print Map',
-        'analysis': 'Spatial Analysis'
+        'analysis': 'Spatial Analysis',
+        'building': 'Building Analysis'
     };
 
     panelTitle.textContent = titles[panelType] || 'Panel';
@@ -1689,7 +1693,7 @@ function setupPrintListeners() {
 }
 
 
-// Add this new function for building event listeners
+// Complete setupBuildingListeners function for main.js
 function setupBuildingListeners() {
     // Populate department dropdown
     populateDepartmentDropdown('building-department');
@@ -1702,10 +1706,25 @@ function setupBuildingListeners() {
     const searchTermInput = document.getElementById('building-search-term');
     const searchBtn = document.getElementById('search-buildings-btn');
     const clearBtn = document.getElementById('clear-building-results-btn');
-    const exportBtn = document.getElementById('export-buildings-btn');
     const wmsLayerCheckbox = document.getElementById('show-wms-layer');
     const totalBuildingsEl = document.getElementById('total-buildings');
     const selectedDeptNameEl = document.getElementById('selected-dept-name');
+
+    // Handle search term input conversion
+    if (searchTermInput) {
+        searchTermInput.addEventListener('input', function() {
+            if (this.value.toLowerCase() === 'mahatari') {
+                this.dataset.actualValue = 'महतारी';
+            } else {
+                this.dataset.actualValue = this.value;
+            }
+        });
+
+        // Set initial actual value
+        if (searchTermInput.value.toLowerCase() === 'mahatari') {
+            searchTermInput.dataset.actualValue = 'महतारी';
+        }
+    }
 
     // Department selection
     if (departmentSelect) {
@@ -1721,7 +1740,8 @@ function setupBuildingListeners() {
     if (searchBtn) {
         searchBtn.addEventListener('click', async () => {
             const departmentId = departmentSelect?.value || '';
-            const searchTerm = searchTermInput?.value.trim() || '';
+            // Use actual value instead of display value
+            const searchTerm = searchTermInput?.dataset.actualValue || searchTermInput?.value.trim() || '';
 
             if (!departmentId && !searchTerm) {
                 showNotification('Please select a department or enter a search term', 'warning');
@@ -1761,16 +1781,135 @@ function setupBuildingListeners() {
             clearBuildingResults();
             
             if (departmentSelect) departmentSelect.value = '';
-            if (searchTermInput) searchTermInput.value = 'महतारी';
+            if (searchTermInput) {
+                searchTermInput.value = 'mahatari';
+                searchTermInput.dataset.actualValue = 'महतारी';
+            }
             if (totalBuildingsEl) totalBuildingsEl.textContent = '0';
             if (selectedDeptNameEl) selectedDeptNameEl.textContent = 'None';
         });
     }
 
-    // Export button
-    if (exportBtn) {
-        exportBtn.addEventListener('click', () => {
-            exportBuildingData();
+    const exportReportBtn = document.getElementById('export-buildings-btn');
+    // Export Report button - opens modal with preview
+    if (exportReportBtn) {
+        exportReportBtn.addEventListener('click', () => {
+            if (!buildingState.filteredBuildings || buildingState.filteredBuildings.length === 0) {
+                showNotification('No data to export. Please search for buildings first.', 'warning');
+                return;
+            }
+
+            // Update filter information
+            const filterDeptName = document.getElementById('filter-dept-name');
+            const filterSearchTerm = document.getElementById('filter-search-term');
+            const filterBuildingCount = document.getElementById('filter-building-count');
+            const reportDate = document.getElementById('report-date');
+            const previewRecordCount = document.getElementById('preview-record-count');
+
+            if (reportDate) {
+                reportDate.textContent = new Date().toLocaleString('en-IN', { 
+                    dateStyle: 'medium', 
+                    timeStyle: 'short' 
+                });
+            }
+
+            if (filterDeptName && departmentSelect) {
+                const selectedText = departmentSelect.options[departmentSelect.selectedIndex]?.text || 'All Departments';
+                filterDeptName.textContent = departmentSelect.value ? selectedText : 'All Departments';
+            }
+
+            if (filterSearchTerm && searchTermInput) {
+                // Show actual value in export modal
+                const actualValue = searchTermInput.dataset.actualValue || searchTermInput.value;
+                filterSearchTerm.textContent = actualValue || 'None';
+            }
+
+            if (filterBuildingCount) {
+                filterBuildingCount.textContent = buildingState.filteredBuildings.length;
+            }
+
+            if (previewRecordCount) {
+                previewRecordCount.textContent = buildingState.filteredBuildings.length;
+            }
+
+            // Update preview table - SHOW ALL RECORDS
+            const previewTableBody = document.getElementById('preview-table-body');
+            if (previewTableBody) {
+                let html = '';
+                
+                buildingState.filteredBuildings.forEach((feature, index) => {
+                    const props = feature.properties || {};
+                    html += `
+                        <tr>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-family: monospace; white-space: nowrap;">${props.gb_id || '-'}</td>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.name_building || '-'}</td>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.dist_name || '-'}</td>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.tehsil_name || '-'}</td>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.village_name || '-'}</td>
+                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.type_building || '-'}</td>
+                        </tr>
+                    `;
+                });
+                
+                if (html === '') {
+                    html = `
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                                No data available
+                            </td>
+                        </tr>
+                    `;
+                }
+                
+                previewTableBody.innerHTML = html;
+            }
+
+            // Open modal
+            const exportModal = new bootstrap.Modal(document.getElementById('buildingExportModal'));
+            exportModal.show();
+        });
+    }
+
+    // Excel export handler
+    const confirmExcelExport = document.getElementById('confirm-excel-export');
+    if (confirmExcelExport) {
+        confirmExcelExport.addEventListener('click', () => {
+            try {
+                if (typeof XLSX === 'undefined') {
+                    showNotification('Excel export library not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+
+                exportBuildingAsExcel();
+                
+                const exportModal = bootstrap.Modal.getInstance(document.getElementById('buildingExportModal'));
+                if (exportModal) exportModal.hide();
+            } catch (error) {
+                console.error('Excel export error:', error);
+                showNotification('Failed to export Excel. Please try again.', 'error');
+            }
+        });
+    }
+
+    // PDF export handler
+    const confirmPdfExport = document.getElementById('confirm-pdf-export');
+    if (confirmPdfExport) {
+        confirmPdfExport.addEventListener('click', () => {
+            try {
+                if (typeof window.jspdf === 'undefined') {
+                    showNotification('PDF export library not loaded. Please refresh the page.', 'error');
+                    return;
+                }
+
+                exportBuildingAsPDF();
+                
+                const exportModal = bootstrap.Modal.getInstance(document.getElementById('buildingExportModal'));
+                if (exportModal) exportModal.hide();
+            } catch (error) {
+                console.error('PDF export error:', error);
+                showNotification('Failed to export PDF. Please try again.', 'error');
+            }
         });
     }
 
@@ -1780,7 +1919,6 @@ function setupBuildingListeners() {
             toggleBuildingLayer(e.target.checked);
         });
         
-        // Set initial state
         toggleBuildingLayer(wmsLayerCheckbox.checked);
     }
 

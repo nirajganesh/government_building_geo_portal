@@ -2386,3 +2386,299 @@ body {
 .results-container::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
+
+
+/* Export Modal Styles */
+.export-options-grid {
+    display: grid;
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.export-option-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 20px;
+    background: white;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+.export-option-card:hover {
+    border-color: #7768AE;
+    box-shadow: 0 4px 12px rgba(119, 104, 174, 0.2);
+    transform: translateY(-2px);
+}
+
+.export-option-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.excel-icon {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+.excel-icon svg {
+    stroke: white;
+}
+
+.pdf-icon {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.pdf-icon svg {
+    stroke: white;
+}
+
+.export-option-content h6 {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.export-option-content p {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.export-features {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    margin-bottom: 16px;
+}
+
+.feature-badge {
+    font-size: 11px;
+    padding: 4px 8px;
+    background: #f3f4f6;
+    color: #4b5563;
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+.export-action-btn {
+    width: 100%;
+    padding: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.export-action-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+#confirm-excel-export {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border: none;
+}
+
+#confirm-pdf-export {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+}
+
+/* Modal customization */
+#buildingExportModal .modal-content {
+    border-radius: 16px;
+    border: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+#buildingExportModal .modal-header {
+    border-bottom: 2px solid #f3f4f6;
+    padding: 20px 24px;
+    border-radius: 16px 16px 0 0;
+}
+
+#buildingExportModal .modal-body {
+    padding: 24px;
+}
+
+#buildingExportModal .modal-footer {
+    border-top: 2px solid #f3f4f6;
+    padding: 16px 24px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .export-options-grid {
+        gap: 12px;
+    }
+    
+    .export-option-card {
+        padding: 16px;
+    }
+    
+    .export-option-icon {
+        width: 56px;
+        height: 56px;
+    }
+    
+    .export-option-icon svg {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .export-option-content h6 {
+        font-size: 14px;
+    }
+    
+    .export-option-content p {
+        font-size: 12px;
+    }
+}
+
+/* Additional styles for the updated modal */
+#buildingExportModal .modal-lg {
+    max-width: 900px;
+}
+
+#buildingExportModal .btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#building-preview-table thead th {
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+}
+
+#building-preview-table tbody td {
+    padding: 10px 8px;
+    border-bottom: 1px solid #e5e7eb;
+    vertical-align: middle;
+}
+
+#building-preview-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+#building-preview-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+
+
+
+
+/* Scrollbar styling for preview table */
+#building-preview-table {
+    width: 100%;
+}
+
+#building-preview-table tbody tr:last-child td {
+    border-bottom: none !important;
+}
+
+.modal-body > div:nth-child(3) > div:first-child::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+.modal-body > div:nth-child(3) > div:first-child::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 5px;
+}
+
+.modal-body > div:nth-child(3) > div:first-child::-webkit-scrollbar-thumb {
+    background: #94a3b8;
+    border-radius: 5px;
+}
+
+.modal-body > div:nth-child(3) > div:first-child::-webkit-scrollbar-thumb:hover {
+    background: #64748b;
+}
+
+/* Make table responsive */
+#building-preview-table thead th {
+    position: sticky;
+    top: 0;
+    background: #5b69f5;
+    z-index: 10;
+}
+
+#building-preview-table tbody tr:hover {
+    background-color: #f1f5f9 !important;
+}
+
+
+
+
+
+
+
+/* Building Details Modal Styles */
+.building-details-container {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: flex-start;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-label {
+    font-size: 14px;
+    color: #6b7280;
+    font-weight: 500;
+    min-width: 140px;
+    flex-shrink: 0;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: #1f2937;
+    font-weight: 600;
+    text-align: right;
+    flex: 1;
+    margin-left: 16px;
+}
+
+#buildingDetailsModal .modal-dialog {
+    max-width: 550px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .detail-row {
+        flex-direction: column;
+        gap: 6px;
+    }
+    
+    .detail-label {
+        min-width: auto;
+    }
+    
+    .detail-value {
+        text-align: left;
+        margin-left: 0;
+    }
+}
