@@ -1703,26 +1703,28 @@ function setupBuildingListeners() {
     createBuildingVectorLayer();
 
     const departmentSelect = document.getElementById('building-department');
-    const searchTermInput = document.getElementById('building-search-term');
+    const searchTermSelect = document.getElementById('building-search-term');
     const searchBtn = document.getElementById('search-buildings-btn');
     const clearBtn = document.getElementById('clear-building-results-btn');
     const wmsLayerCheckbox = document.getElementById('show-wms-layer');
     const totalBuildingsEl = document.getElementById('total-buildings');
     const selectedDeptNameEl = document.getElementById('selected-dept-name');
 
-    // Handle search term input conversion
-    if (searchTermInput) {
-        searchTermInput.addEventListener('input', function() {
-            if (this.value.toLowerCase() === 'mahatari') {
-                this.dataset.actualValue = 'महतारी';
-            } else {
-                this.dataset.actualValue = this.value;
+    // Handle search term dropdown change
+    if (searchTermSelect) {
+        searchTermSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            if (selectedOption) {
+                const actualValue = selectedOption.getAttribute('data-actual-value') || this.value;
+                this.dataset.actualValue = actualValue;
             }
         });
 
         // Set initial actual value
-        if (searchTermInput.value.toLowerCase() === 'mahatari') {
-            searchTermInput.dataset.actualValue = 'महतारी';
+        const initialOption = searchTermSelect.options[searchTermSelect.selectedIndex];
+        if (initialOption) {
+            const actualValue = initialOption.getAttribute('data-actual-value') || searchTermSelect.value;
+            searchTermSelect.dataset.actualValue = actualValue;
         }
     }
 
@@ -1740,11 +1742,11 @@ function setupBuildingListeners() {
     if (searchBtn) {
         searchBtn.addEventListener('click', async () => {
             const departmentId = departmentSelect?.value || '';
-            // Use actual value instead of display value
-            const searchTerm = searchTermInput?.dataset.actualValue || searchTermInput?.value.trim() || '';
+            // Use actual value from data attribute
+            const searchTerm = searchTermSelect?.dataset.actualValue || '';
 
             if (!departmentId && !searchTerm) {
-                showNotification('Please select a department or enter a search term', 'warning');
+                showNotification('Please select a department or search term', 'warning');
                 return;
             }
 
@@ -1781,9 +1783,9 @@ function setupBuildingListeners() {
             clearBuildingResults();
             
             if (departmentSelect) departmentSelect.value = '';
-            if (searchTermInput) {
-                searchTermInput.value = 'mahatari';
-                searchTermInput.dataset.actualValue = 'महतारी';
+            if (searchTermSelect) {
+                searchTermSelect.value = 'mahatari';
+                searchTermSelect.dataset.actualValue = 'महतारी';
             }
             if (totalBuildingsEl) totalBuildingsEl.textContent = '0';
             if (selectedDeptNameEl) selectedDeptNameEl.textContent = 'None';
@@ -1818,10 +1820,15 @@ function setupBuildingListeners() {
                 filterDeptName.textContent = departmentSelect.value ? selectedText : 'All Departments';
             }
 
-            if (filterSearchTerm && searchTermInput) {
-                // Show actual value in export modal
-                const actualValue = searchTermInput.dataset.actualValue || searchTermInput.value;
-                filterSearchTerm.textContent = actualValue || 'None';
+            if (filterSearchTerm && searchTermSelect) {
+                // Show actual value (Hindi) in export modal
+                const actualValue = searchTermSelect.dataset.actualValue || '';
+                const displayValue = searchTermSelect.options[searchTermSelect.selectedIndex]?.text || 'None';
+                
+                // Show both English and Hindi
+                filterSearchTerm.innerHTML = actualValue 
+                    ? `${displayValue} <span style="color: #6b7280;">(${actualValue})</span>` 
+                    : 'None';
             }
 
             if (filterBuildingCount) {
@@ -1920,15 +1927,6 @@ function setupBuildingListeners() {
         });
         
         toggleBuildingLayer(wmsLayerCheckbox.checked);
-    }
-
-    // Allow Enter key in search input
-    if (searchTermInput) {
-        searchTermInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                searchBtn?.click();
-            }
-        });
     }
 }
 

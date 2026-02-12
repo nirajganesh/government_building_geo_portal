@@ -668,29 +668,23 @@
             <!-- Building Analysis Panel Template -->
             <template id="building-panel-template">
                 <div class="building-panel">
-                    <div class="section-header mb-3">
-                        <h4 class="section-title">Building Search & Analysis</h4>
-                    </div>
                     
                     <!-- Search Filters -->
                     <div class="building-filters">
                         <div class="mb-3">
                             <label for="building-department" class="form-label">Select Department</label>
                             <select class="form-select" id="building-department">
-                                <option value="">Loading departments...</option>
+                                <option value="" style="width: 200px;">Loading departments...</option>
                             </select>
                         </div>
 
                         <div class="mb-3">
                             <label for="building-search-term" class="form-label">Search Term</label>
-                            <input 
-                                type="text" 
-                                class="form-control" 
-                                id="building-search-term" 
-                                placeholder="Enter search term (e.g., mahatari)"
-                                value="mahatari"
-                                data-actual-value="महतारी"
-                            >
+                            <select class="form-select" id="building-search-term">
+                                <option value="">-- Select Search Term --</option>
+                                <option value="mahatari" data-actual-value="महतारी" selected>Mahatari</option>
+                                <option value="panchayat" data-actual-value="पंचायत">Panchayat</option>
+                            </select>
                             <small class="text-muted">Search in building names</small>
                         </div>
 
@@ -728,7 +722,7 @@
                                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-right:5px;">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                                     </svg>
-                                    Export Report
+                                    Report
                                 </button>
                             </div>
                         </div>
