@@ -62,6 +62,7 @@ import {
     clearBuildingResults,
     exportBuildingAsExcel,
     exportBuildingAsPDF,
+    getGPCoverageData,
     toggleBuildingLayer,
     createBuildingWMSLayer,
     createBuildingVectorLayer,
@@ -83,7 +84,7 @@ export const LAYER_CONFIGS = [
     { id: 'cg_division', wms: 'cg_division_boundary', name: 'Division Boundaries' },
     { id: 'cg_dist', wms: 'cg_district_boundary', name: 'District Boundaries' },
     { id: 'cg_tehsil', wms: 'cg_tehsil_boundary', name: 'Tehsil Boundaries', minZoom: 8.5 },
-    { id: 'cg_grampanchayat', wms: 'cg_gram_panchayat_boundary', name: 'Gram Panchayat', minZoom: 9 },
+    { id: 'cg_grampanchayat', wms: 'cg_gp', name: 'Gram Panchayat', minZoom: 9 },
     { id: 'cg_village', wms: 'cg_village_boundary', name: 'Village Boundaries' },
     { id: 'cg_assembly_bound', wms: 'cg_assembly_boundary', name: 'Assembly Boundaries' },
     { id: 'cg_ls_bound', wms: 'cg_lagislative_constituency_boundary', name: 'Legislative Constituency' },
@@ -1695,17 +1696,24 @@ function setupPrintListeners() {
 
 // Complete setupBuildingListeners function for main.js
 function setupBuildingListeners() {
-    // Populate department dropdown
+    // Populate district dropdown first, then department
+    loadDistricts().then(() => {
+        populateDistrictDropdown('building-district');
+    }).catch(() => {
+        const el = document.getElementById('building-district');
+        if (el) el.innerHTML = '<option value="">-- All Districts --</option>';
+    });
     populateDepartmentDropdown('building-department');
 
     // Initialize building layers
     createBuildingWMSLayer();
     createBuildingVectorLayer();
 
+    const districtSelect   = document.getElementById('building-district');
     const departmentSelect = document.getElementById('building-department');
     const searchTermSelect = document.getElementById('building-search-term');
-    const searchBtn = document.getElementById('search-buildings-btn');
-    const clearBtn = document.getElementById('clear-building-results-btn');
+    const searchBtn        = document.getElementById('search-buildings-btn');
+    const clearBtn         = document.getElementById('clear-building-results-btn');
     const wmsLayerCheckbox = document.getElementById('show-wms-layer');
     const totalBuildingsEl = document.getElementById('total-buildings');
     const selectedDeptNameEl = document.getElementById('selected-dept-name');
@@ -1741,14 +1749,36 @@ function setupBuildingListeners() {
     // Search button
     if (searchBtn) {
         searchBtn.addEventListener('click', async () => {
+            const districtCode = districtSelect?.value || '';
+            const districtName = districtCode
+                ? (districtSelect.options[districtSelect.selectedIndex]?.text?.trim() || '')
+                : '';
             const departmentId = departmentSelect?.value || '';
-            // Use actual value from data attribute
             const searchTerm = searchTermSelect?.dataset.actualValue || '';
 
-            if (!departmentId && !searchTerm) {
-                showNotification('Please select a department or search term', 'warning');
+            if (!districtCode && !departmentId && !searchTerm) {
+                showNotification('Please select a district, department or search term', 'warning');
                 return;
             }
+
+            const progressContainer = document.getElementById('search-progress-container');
+            const progressBar = document.getElementById('search-progress-bar');
+            const progressLabel = document.getElementById('search-progress-label');
+            const progressPercent = document.getElementById('search-progress-percent');
+
+            const showProgress = (pct, label) => {
+                if (progressContainer) progressContainer.style.display = 'block';
+                if (progressBar) progressBar.style.width = pct + '%';
+                if (progressLabel) progressLabel.textContent = label;
+                if (progressPercent) progressPercent.textContent = pct + '%';
+            };
+
+            const hideProgress = () => {
+                setTimeout(() => {
+                    if (progressContainer) progressContainer.style.display = 'none';
+                    if (progressBar) progressBar.style.width = '0%';
+                }, 1500);
+            };
 
             try {
                 searchBtn.disabled = true;
@@ -1757,14 +1787,19 @@ function setupBuildingListeners() {
                     Searching...
                 `;
 
-                const data = await searchBuildings(departmentId, searchTerm);
-                
+                showProgress(0, 'Starting search...');
+
+                const data = await searchBuildings(departmentId, searchTerm, showProgress, districtCode, districtName);
+
                 if (totalBuildingsEl) {
                     totalBuildingsEl.textContent = data?.features?.length || 0;
                 }
+
+                hideProgress();
             } catch (error) {
                 console.error('Search error:', error);
                 showNotification('Search failed. Please try again.', 'error');
+                hideProgress();
             } finally {
                 searchBtn.disabled = false;
                 searchBtn.innerHTML = `
@@ -1781,7 +1816,8 @@ function setupBuildingListeners() {
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             clearBuildingResults();
-            
+
+            if (districtSelect) districtSelect.value = '';
             if (departmentSelect) departmentSelect.value = '';
             if (searchTermSelect) {
                 searchTermSelect.value = 'mahatari';
@@ -1806,7 +1842,6 @@ function setupBuildingListeners() {
             const filterSearchTerm = document.getElementById('filter-search-term');
             const filterBuildingCount = document.getElementById('filter-building-count');
             const reportDate = document.getElementById('report-date');
-            const previewRecordCount = document.getElementById('preview-record-count');
 
             if (reportDate) {
                 reportDate.textContent = new Date().toLocaleString('en-IN', { 
@@ -1835,10 +1870,6 @@ function setupBuildingListeners() {
                 filterBuildingCount.textContent = buildingState.filteredBuildings.length;
             }
 
-            if (previewRecordCount) {
-                previewRecordCount.textContent = buildingState.filteredBuildings.length;
-            }
-
             // Update preview table - SHOW ALL RECORDS
             const previewTableBody = document.getElementById('preview-table-body');
             if (previewTableBody) {
@@ -1849,12 +1880,10 @@ function setupBuildingListeners() {
                     html += `
                         <tr>
                             <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${index + 1}</td>
-                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb; font-family: monospace; white-space: nowrap;">${props.gb_id || '-'}</td>
                             <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.name_building || '-'}</td>
                             <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.dist_name || '-'}</td>
                             <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.tehsil_name || '-'}</td>
                             <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.village_name || '-'}</td>
-                            <td style="padding: 10px 8px; border-bottom: 1px solid #e5e7eb;">${props.type_building || '-'}</td>
                         </tr>
                     `;
                 });
@@ -1870,6 +1899,35 @@ function setupBuildingListeners() {
                 }
                 
                 previewTableBody.innerHTML = html;
+            }
+
+            // Update tab badge counts
+            const tabBuildingsCount = document.getElementById('tab-buildings-count');
+            if (tabBuildingsCount) tabBuildingsCount.textContent = buildingState.filteredBuildings.length;
+
+            // Populate Covered & Uncovered GP tabs
+            const selDistrictName = districtSelect?.options[districtSelect.selectedIndex]?.text?.replace('-- All Districts --','').trim() || '';
+            const { covered, uncovered } = getGPCoverageData(selDistrictName);
+
+            const tabCoveredCount = document.getElementById('tab-covered-count');
+            const tabUncoveredCount = document.getElementById('tab-uncovered-count');
+            if (tabCoveredCount) tabCoveredCount.textContent = covered.length;
+            if (tabUncoveredCount) tabUncoveredCount.textContent = uncovered.length;
+
+            const td = (val) => `<td style="padding:10px 8px;border-bottom:1px solid #e5e7eb;">${val}</td>`;
+
+            const coveredBody = document.getElementById('covered-gp-table-body');
+            if (coveredBody) {
+                coveredBody.innerHTML = covered.length
+                    ? covered.map((r, i) => `<tr>${td(i+1)}${td(r.name)}${td(r.buildings)}${td(r.district)}${td(r.tehsil)}</tr>`).join('')
+                    : `<tr><td colspan="5" style="text-align:center;padding:30px;color:#9ca3af;">No covered GPs found.</td></tr>`;
+            }
+
+            const uncoveredBody = document.getElementById('uncovered-gp-table-body');
+            if (uncoveredBody) {
+                uncoveredBody.innerHTML = uncovered.length
+                    ? uncovered.map((r, i) => `<tr>${td(i+1)}${td(r.name)}${td(r.district)}${td(r.tehsil)}</tr>`).join('')
+                    : `<tr><td colspan="4" style="text-align:center;padding:30px;color:#9ca3af;">All GPs are covered!</td></tr>`;
             }
 
             // Open modal

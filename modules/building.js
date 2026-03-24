@@ -2,15 +2,13 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
 import { Style, Circle, Fill, Stroke, Text } from 'ol/style';
-import { bbox as bboxStrategy } from 'ol/loadingstrategy';
 import ImageWMS from 'ol/source/ImageWMS';
 import ImageLayer from 'ol/layer/Image';
 
 import { 
-    API_CONFIG, 
-    mapState, 
-    showNotification,
-    exportToCSV
+    API_CONFIG,
+    mapState,
+    showNotification
 } from '../main.js';
 
 import {
@@ -27,6 +25,25 @@ export const buildingState = {
     buildingSource: null,
     filteredBuildings: [],
     loading: false
+};
+
+// Add village layer state
+export const villageLayerState = {
+    layer: null,
+    source: null,
+    villagesWithBuildings: new Set(),
+    allVillages: new Map()
+};
+
+// GP (Gram Panchayat) WMS layer state
+export const gpLayerState = {
+    wmsLayer: null,
+    coverageLayer: null,
+    coverageSource: null,
+    gpsWithBuildings: new Set(),  // Set of OL feature refs
+    gpBuildingMap: new Map(),     // OL feature → [{name, tehsil, district}]
+    tehsilMap: new Map(),         // teh_cod → teh_e (tehsil name)
+    allGPs: new Map()
 };
 
 // ==================== DEPARTMENT DATA ====================
@@ -104,6 +121,622 @@ export async function loadDepartments() {
     }
 }
 
+
+
+// ==================== CREATE VILLAGE LAYER ====================
+export function createVillageAnalysisLayer() {
+    if (villageLayerState.layer) {
+        return villageLayerState.layer;
+    }
+
+    villageLayerState.source = new VectorSource();
+
+    villageLayerState.layer = new VectorLayer({
+        source: villageLayerState.source,
+        style: function(feature) {
+            const villageCode = feature.get('vill_cod');
+            const hasBuildings = villageLayerState.villagesWithBuildings.has(String(villageCode));
+            
+            return new Style({
+                stroke: new Stroke({
+                    color: hasBuildings ? '#10b981' : '#6b7280',
+                    width: 2
+                }),
+                fill: new Fill({
+                    color: hasBuildings ? 'rgba(16, 185, 129, 0.3)' : 'rgba(107, 116, 128, 0.2)'
+                })
+            });
+        },
+        zIndex: 95,
+        name: 'village-analysis'
+    });
+
+    return villageLayerState.layer;
+}
+
+// ==================== LOAD VILLAGE BOUNDARIES ====================
+export async function loadVillageLayer() {
+    try {
+        showNotification('Loading village boundaries...', 'info');
+
+        const wfsUrl = API_CONFIG.wfsUrl;
+        const params = new URLSearchParams({
+            service: 'WFS',
+            version: '1.1.0',
+            request: 'GetFeature',
+            typeName: 'CGCOG_DATABASE:cg_village_boundary',
+            outputFormat: 'application/json',
+            srsName: 'EPSG:4326'
+        });
+
+        const response = await fetch(`${wfsUrl}?${params.toString()}`);
+        
+        if (!response.ok) {
+            throw new Error(`Failed to fetch village boundaries: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        console.log('Village data received:', data);
+        
+        if (!villageLayerState.source) {
+            createVillageAnalysisLayer();
+        }
+
+        const format = new GeoJSON();
+        const features = format.readFeatures(data, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857'
+        });
+
+        console.log(`Parsed ${features.length} village features`);
+
+        villageLayerState.source.clear();
+        villageLayerState.source.addFeatures(features);
+
+        // Store all village features with their codes
+        villageLayerState.allVillages.clear();
+        features.forEach(feature => {
+            const code = feature.get('vill_cod');
+            const name = feature.get('vill_nam');
+            
+            if (code) {
+                villageLayerState.allVillages.set(String(code), {
+                    feature: feature,
+                    name: name,
+                    code: code
+                });
+            }
+        });
+
+        console.log(`Stored ${villageLayerState.allVillages.size} villages in map`);
+
+        // Add to map if not already added
+        if (mapState.instance) {
+            const existingLayers = mapState.instance.getLayers().getArray();
+            const layerExists = existingLayers.includes(villageLayerState.layer);
+            
+            if (!layerExists) {
+                mapState.instance.addLayer(villageLayerState.layer);
+                console.log('Village layer added to map');
+            }
+        }
+
+        showNotification(`Loaded ${features.length} village boundaries`, 'success');
+        return data;
+    } catch (error) {
+        console.error('Error loading village layer:', error);
+        showNotification('Failed to load village boundaries: ' + error.message, 'error');
+        throw error;
+    }
+}
+
+
+
+// ==================== ANALYZE VILLAGES WITH BUILDINGS ====================
+export function analyzeVillagesWithBuildings(buildingFeatures) {
+    if (!buildingFeatures || buildingFeatures.length === 0) {
+        showNotification('No buildings to analyze', 'warning');
+        return;
+    }
+
+    if (!villageLayerState.source) {
+        showNotification('Village layer not loaded', 'warning');
+        return;
+    }
+
+    villageLayerState.villagesWithBuildings.clear();
+
+    const villageFeatures = villageLayerState.source.getFeatures();
+    
+    if (villageFeatures.length === 0) {
+        console.warn('No village features in source');
+        showNotification('No village features loaded', 'warning');
+        return;
+    }
+
+    // Get building point features from the vector source
+    const buildingPointFeatures = buildingState.buildingSource?.getFeatures() || [];
+    
+    if (buildingPointFeatures.length === 0) {
+        console.warn('No building point features found');
+        return;
+    }
+
+    console.log(`Analyzing ${buildingPointFeatures.length} buildings against ${villageFeatures.length} villages...`);
+
+    let matchCount = 0;
+
+    // For each building point, check which village contains it
+    buildingPointFeatures.forEach((buildingFeature, idx) => {
+        const buildingGeom = buildingFeature.getGeometry();
+        
+        if (!buildingGeom) {
+            console.warn(`Building ${idx} has no geometry`);
+            return;
+        }
+
+        const buildingCoord = buildingGeom.getCoordinates();
+
+        // Check each village polygon
+        villageFeatures.forEach(villageFeature => {
+            const villageGeom = villageFeature.getGeometry();
+            
+            if (!villageGeom) return;
+
+            // Spatial containment check
+            if (villageGeom.intersectsCoordinate(buildingCoord)) {
+                const villageCode = villageFeature.get('vill_cod');
+                
+                if (villageCode) {
+                    villageLayerState.villagesWithBuildings.add(String(villageCode));
+                    matchCount++;
+                    
+                    // Log for debugging
+                    const villageName = villageFeature.get('vill_nam');
+                    console.log(`Building found in village: ${villageName} (${villageCode})`);
+                }
+            }
+        });
+    });
+
+    console.log(`Total spatial matches: ${matchCount}`);
+
+    // Refresh the layer style
+    if (villageLayerState.layer) {
+        villageLayerState.layer.changed();
+    }
+
+    // Update legend
+    updateVillageLegend();
+
+    // Show statistics
+    const totalVillages = villageLayerState.allVillages.size;
+    const villagesWithBuildings = villageLayerState.villagesWithBuildings.size;
+    const villagesWithoutBuildings = totalVillages - villagesWithBuildings;
+
+    console.log('Village Analysis Results:', {
+        totalVillages: totalVillages,
+        villagesWithBuildings: villagesWithBuildings,
+        villagesWithoutBuildings: villagesWithoutBuildings,
+        percentage: totalVillages > 0 ? ((villagesWithBuildings / totalVillages) * 100).toFixed(2) + '%' : '0%'
+    });
+
+    // Log village names with buildings
+    const villageNamesWithBuildings = [];
+    villageLayerState.villagesWithBuildings.forEach(code => {
+        const villageData = villageLayerState.allVillages.get(code);
+        if (villageData) {
+            villageNamesWithBuildings.push(villageData.name);
+        }
+    });
+    console.log('Villages with buildings:', villageNamesWithBuildings);
+
+    if (totalVillages > 0) {
+        showNotification(
+            `Analysis Complete: ${villagesWithBuildings} of ${totalVillages} villages have buildings (${((villagesWithBuildings/totalVillages)*100).toFixed(1)}%)`,
+            'success',
+            5000
+        );
+    }
+}
+
+// ==================== UPDATE LEGEND FOR VILLAGES ====================
+function updateVillageLegend() {
+    const existingLegendItems = getCustomLegendItems();
+    
+    // Remove old village legend items
+    const filteredItems = existingLegendItems.filter(item => 
+        !item.label.includes('Villages with Buildings') &&
+        !item.label.includes('Villages without Buildings')
+    );
+
+    // Add new village legend items
+    const newLegendItems = [
+        ...filteredItems,
+        {
+            color: '#10b981',
+            label: 'Villages with Buildings',
+            shape: 'polygon'
+        },
+        {
+            color: '#6b7280',
+            label: 'Villages without Buildings',
+            shape: 'polygon'
+        }
+    ];
+
+    setCustomLegendItems(newLegendItems);
+    updateLegend();
+}
+
+// ==================== REMOVE VILLAGE LAYER ====================
+export function removeVillageAnalysisLayer() {
+    if (villageLayerState.layer && mapState.instance) {
+        mapState.instance.removeLayer(villageLayerState.layer);
+    }
+
+    villageLayerState.villagesWithBuildings.clear();
+    villageLayerState.allVillages.clear();
+
+    // Remove from legend
+    const existingLegendItems = getCustomLegendItems();
+    const filteredItems = existingLegendItems.filter(item => 
+        !item.label.includes('Villages with Buildings') &&
+        !item.label.includes('Villages without Buildings')
+    );
+    setCustomLegendItems(filteredItems);
+    updateLegend();
+}
+
+// ==================== GP WMS LAYER SETUP ====================
+export function createGPWMSLayer() {
+    if (gpLayerState.wmsLayer) {
+        return gpLayerState.wmsLayer;
+    }
+
+    gpLayerState.wmsLayer = new ImageLayer({
+        title: 'Gram Panchayat Boundaries',
+        source: new ImageWMS({
+            url: API_CONFIG.adminUrl,
+            params: {
+                'LAYERS': 'CGCOG_DATABASE:cg_gp',
+                'FORMAT': 'image/png',
+                'TRANSPARENT': true,
+                'STYLES': '',
+                'VERSION': '1.1.0'
+            },
+            serverType: 'geoserver',
+            crossOrigin: 'anonymous',
+        }),
+        visible: true,
+        zIndex: 93,
+        name: 'gp-wms-boundary'
+    });
+
+    return gpLayerState.wmsLayer;
+}
+
+// ==================== LOAD GP LAYER (WMS + WFS for coverage) ====================
+export async function loadGPLayer(buildingFeatures = [], districtCode = '') {
+    try {
+        showNotification('Loading Gram Panchayat boundaries...', 'info');
+
+        // Add WMS layer to map and apply district filter
+        if (mapState.instance) {
+            if (!gpLayerState.wmsLayer) {
+                createGPWMSLayer();
+            }
+            const existingLayers = mapState.instance.getLayers().getArray();
+            if (!existingLayers.includes(gpLayerState.wmsLayer)) {
+                mapState.instance.addLayer(gpLayerState.wmsLayer);
+            }
+
+            // Apply CQL_FILTER on WMS to show only selected district GPs
+            const wmsSource = gpLayerState.wmsLayer.getSource();
+            if (districtCode) {
+                wmsSource.updateParams({ 'CQL_FILTER': `dist_cod = '${districtCode}'` });
+            } else {
+                wmsSource.updateParams({ 'CQL_FILTER': undefined });
+            }
+        }
+
+        // Build GP WFS filter — dist_cod is preferred (exact), BBOX as fallback
+        let gpCqlFilter = '';
+        if (districtCode) {
+            gpCqlFilter = `dist_cod = '${districtCode}'`;
+        } else if (buildingFeatures.length > 0) {
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            buildingFeatures.forEach(f => {
+                const coords = f.geometry?.coordinates;
+                if (coords) {
+                    const [x, y] = Array.isArray(coords[0]) ? coords[0] : coords;
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+            });
+            const pad = 0.5;
+            gpCqlFilter = `BBOX(the_geom,${minX - pad},${minY - pad},${maxX + pad},${maxY + pad},'EPSG:4326')`;
+        }
+
+        // Fetch GP WFS + Tehsil WFS in parallel for speed
+        const wfsUrl = API_CONFIG.wfsUrl;
+
+        const gpParams = new URLSearchParams({
+            service: 'WFS', version: '1.1.0', request: 'GetFeature',
+            typeName: 'CGCOG_DATABASE:cg_gp',
+            outputFormat: 'application/json', srsName: 'EPSG:4326'
+        });
+        if (gpCqlFilter) gpParams.append('CQL_FILTER', gpCqlFilter);
+
+        const tehsilParams = new URLSearchParams({
+            service: 'WFS', version: '1.1.0', request: 'GetFeature',
+            typeName: 'CGCOG_DATABASE:cg_tehsil_boundary',
+            outputFormat: 'application/json', srsName: 'EPSG:4326'
+        });
+        if (districtCode) tehsilParams.append('CQL_FILTER', `dist_cod='${districtCode}'`);
+
+        const [gpResp, tehsilResp] = await Promise.all([
+            fetch(`${wfsUrl}?${gpParams.toString()}`),
+            fetch(`${wfsUrl}?${tehsilParams.toString()}`).catch(() => null)
+        ]);
+
+        if (!gpResp.ok) throw new Error(`Failed to fetch GP boundaries: ${gpResp.status}`);
+
+        const [data, tehsilData] = await Promise.all([
+            gpResp.json(),
+            tehsilResp?.json().catch(() => null)
+        ]);
+
+        // Build teh_cod → teh_e map
+        gpLayerState.tehsilMap.clear();
+        (tehsilData?.features || []).forEach(f => {
+            const cod = f.properties?.teh_cod;
+            const name = f.properties?.teh_e || f.properties?.teh_nam;
+            if (cod && name) gpLayerState.tehsilMap.set(String(cod), name);
+        });
+        console.log(`Tehsil map built: ${gpLayerState.tehsilMap.size} entries`);
+        console.log(`GP data received: ${data.features?.length} features`);
+
+        // Create coverage vector layer if not exists
+        if (!gpLayerState.coverageSource) {
+            gpLayerState.coverageSource = new VectorSource();
+            gpLayerState.coverageLayer = new VectorLayer({
+                source: gpLayerState.coverageSource,
+                style: function(feature) {
+                    const hasBuildings = gpLayerState.gpsWithBuildings.has(feature);
+                    const zoom = mapState.instance ? mapState.instance.getView().getZoom() : 0;
+                    const gpName = feature.get('gp_nam') || '';
+
+                    return new Style({
+                        stroke: new Stroke({
+                            color: hasBuildings ? '#10b981' : '#6b7280',
+                            width: 1.5
+                        }),
+                        fill: new Fill({
+                            color: hasBuildings ? 'rgba(16, 185, 129, 0.4)' : 'rgba(107, 114, 128, 0.25)'
+                        }),
+                        text: zoom >= 9 ? new Text({
+                            text: gpName,
+                            font: 'bold 11px Arial, sans-serif',
+                            fill: new Fill({ color: hasBuildings ? '#065f46' : '#374151' }),
+                            stroke: new Stroke({ color: '#ffffff', width: 3 }),
+                            backgroundFill: new Fill({ color: hasBuildings ? 'rgba(209,250,229,0.85)' : 'rgba(243,244,246,0.85)' }),
+                            backgroundStroke: new Stroke({ color: hasBuildings ? '#10b981' : '#9ca3af', width: 1 }),
+                            padding: [3, 5, 3, 5],
+                            overflow: true,
+                            placement: 'point'
+                        }) : null
+                    });
+                },
+                zIndex: 94,
+                name: 'gp-coverage'
+            });
+
+            if (mapState.instance) {
+                mapState.instance.addLayer(gpLayerState.coverageLayer);
+            }
+        }
+
+        const format = new GeoJSON();
+        const features = format.readFeatures(data, {
+            dataProjection: 'EPSG:4326',
+            featureProjection: 'EPSG:3857'
+        });
+
+        console.log(`Parsed ${features.length} GP features`);
+
+        gpLayerState.coverageSource.clear();
+        gpLayerState.coverageSource.addFeatures(features);
+
+        // Store all GPs
+        gpLayerState.allGPs.clear();
+        features.forEach(feature => {
+            const code = feature.get('gp_lgd_code') || feature.get('gp_code') || feature.get('gid');
+            const name = feature.get('gp_name') || feature.get('name');
+            if (code) {
+                gpLayerState.allGPs.set(String(code), { feature, name, code });
+            }
+        });
+
+        console.log(`Stored ${gpLayerState.allGPs.size} GPs in map`);
+        showNotification(`Loaded ${features.length} Gram Panchayat boundaries`, 'success');
+        return data;
+    } catch (error) {
+        console.error('Error loading GP layer:', error);
+        showNotification('Failed to load Gram Panchayat boundaries: ' + error.message, 'error');
+        throw error;
+    }
+}
+
+// ==================== ANALYZE GPS WITH BUILDINGS ====================
+export function analyzeGPWithBuildings(buildingFeatures) {
+    if (!buildingFeatures || buildingFeatures.length === 0) {
+        showNotification('No buildings to analyze', 'warning');
+        return;
+    }
+
+    if (!gpLayerState.coverageSource) {
+        showNotification('GP layer not loaded', 'warning');
+        return;
+    }
+
+    gpLayerState.gpsWithBuildings.clear();
+    gpLayerState.gpBuildingMap.clear();
+
+    const gpFeatures = gpLayerState.coverageSource.getFeatures();
+    if (gpFeatures.length === 0) {
+        console.warn('No GP features in source');
+        return;
+    }
+
+    // ---- Strategy 1: Attribute matching using gp_nam field (O(n+m), fast) ----
+    const gpByName = new Map();
+    gpFeatures.forEach(f => {
+        const name = (f.get('gp_nam') || f.get('gp_name') || f.get('name') || '').trim().toLowerCase();
+        if (name) gpByName.set(name, f);
+    });
+
+    const unmatchedBuildings = [];
+    buildingFeatures.forEach(f => {
+        const gpName = (f.properties?.gram_panchayat_name || '').trim().toLowerCase();
+        if (gpName) {
+            const gpFeature = gpByName.get(gpName);
+            if (gpFeature) {
+                gpLayerState.gpsWithBuildings.add(gpFeature);
+                return;
+            }
+        }
+        unmatchedBuildings.push(f);
+    });
+
+    console.log(`Attribute match: ${gpLayerState.gpsWithBuildings.size} GPs matched, ${unmatchedBuildings.length} buildings need spatial fallback`);
+
+    // ---- Strategy 2: Spatial fallback only for unmatched buildings ----
+    if (unmatchedBuildings.length > 0) {
+        const buildingOLFeatures = buildingState.buildingSource?.getFeatures() || [];
+        buildingOLFeatures.forEach(buildingFeature => {
+            const geom = buildingFeature.getGeometry();
+            if (!geom) return;
+            const coord = geom.getCoordinates();
+
+            for (const gpFeature of gpFeatures) {
+                const gpGeom = gpFeature.getGeometry();
+                if (!gpGeom) continue;
+                if (gpGeom.intersectsCoordinate(coord)) {
+                    gpLayerState.gpsWithBuildings.add(gpFeature);
+                    break;
+                }
+            }
+        });
+    }
+
+    // ---- Build gpBuildingMap: spatial match of ALL buildings against ONLY covered GPs ----
+    {
+        const coveredGPs = [...gpLayerState.gpsWithBuildings];
+        const buildingOLAll = buildingState.buildingSource?.getFeatures() || [];
+
+        buildingOLAll.forEach(bFeature => {
+            const geom = bFeature.getGeometry();
+            if (!geom) return;
+            const coord = geom.getCoordinates();
+
+            for (const gpFeature of coveredGPs) {
+                const gpGeom = gpFeature.getGeometry();
+                if (!gpGeom) continue;
+                if (gpGeom.intersectsCoordinate(coord)) {
+                    if (!gpLayerState.gpBuildingMap.has(gpFeature)) {
+                        gpLayerState.gpBuildingMap.set(gpFeature, []);
+                    }
+                    gpLayerState.gpBuildingMap.get(gpFeature).push({
+                        name: bFeature.get('name_building') || '-',
+                        tehsil: bFeature.get('tehsil_name') || '-',
+                        district: bFeature.get('dist_name') || '-'
+                    });
+                    break;
+                }
+            }
+        });
+        console.log(`gpBuildingMap built: ${gpLayerState.gpBuildingMap.size} covered GPs with buildings`);
+    }
+
+    if (gpLayerState.coverageLayer) {
+        gpLayerState.coverageLayer.changed();
+    }
+
+    updateGPLegend();
+
+    const totalGPs = gpFeatures.length;
+    const gpsWithBuildings = gpLayerState.gpsWithBuildings.size;
+
+    console.log(`GP Analysis: ${gpsWithBuildings}/${totalGPs} GPs have buildings`);
+
+    if (totalGPs > 0) {
+        showNotification(
+            `Analysis Complete: ${gpsWithBuildings} of ${totalGPs} Gram Panchayats have buildings (${((gpsWithBuildings / totalGPs) * 100).toFixed(1)}%)`,
+            'success',
+            5000
+        );
+    }
+}
+
+// ==================== UPDATE GP LEGEND ====================
+function updateGPLegend() {
+    const existingLegendItems = getCustomLegendItems();
+
+    const filteredItems = existingLegendItems.filter(item =>
+        !item.label.includes('GPs with Buildings') &&
+        !item.label.includes('Gram Panchayat Boundaries')
+    );
+
+    const newLegendItems = [
+        ...filteredItems,
+        {
+            color: '#10b981',
+            label: 'GPs with Buildings',
+            shape: 'polygon'
+        },
+        {
+            color: '#6b7280',
+            label: 'GPs without Buildings',
+            shape: 'polygon'
+        }
+    ];
+
+    setCustomLegendItems(newLegendItems);
+    updateLegend();
+}
+
+// ==================== REMOVE GP LAYER ====================
+export function removeGPAnalysisLayer() {
+    if (gpLayerState.wmsLayer && mapState.instance) {
+        mapState.instance.removeLayer(gpLayerState.wmsLayer);
+        gpLayerState.wmsLayer = null;
+    }
+
+    if (gpLayerState.coverageLayer && mapState.instance) {
+        mapState.instance.removeLayer(gpLayerState.coverageLayer);
+    }
+
+    gpLayerState.gpsWithBuildings.clear();
+    gpLayerState.allGPs.clear();
+
+    if (gpLayerState.coverageSource) {
+        gpLayerState.coverageSource.clear();
+    }
+
+    const existingLegendItems = getCustomLegendItems();
+    const filteredItems = existingLegendItems.filter(item =>
+        !item.label.includes('GPs with Buildings') &&
+        !item.label.includes('GPs without Buildings') &&
+        !item.label.includes('Gram Panchayat Boundaries')
+    );
+    setCustomLegendItems(filteredItems);
+    updateLegend();
+}
+
 // ==================== WMS LAYER SETUP ====================
 export function createBuildingWMSLayer() {
     if (buildingState.buildingLayer) {
@@ -132,24 +765,17 @@ export function createBuildingWMSLayer() {
 }
 
 // ==================== BUILDING DATA FETCH ====================
-export async function fetchBuildingData(departmentId = null, searchTerm = 'महतारी') {
+export async function fetchBuildingData(departmentId = null, searchTerm = 'महतारी', districtName = '') {
     buildingState.loading = true;
-    
+
     try {
-        // Build WFS request URL
         const wfsUrl = 'https://cggis.cgstate.gov.in/giscg/wmscgcog';
-        
-        let cqlFilter = '';
-        if (departmentId && searchTerm) {
-            // Match first 10 digits of gb_id with department_id AND name contains search term
-            cqlFilter = `gb_id LIKE '${departmentId}%' AND name_building LIKE '%${searchTerm}%'`;
-        } else if (departmentId) {
-            // Only match department
-            cqlFilter = `gb_id LIKE '${departmentId}%'`;
-        } else if (searchTerm) {
-            // Only search term
-            cqlFilter = `name_building LIKE '%${searchTerm}%'`;
-        }
+
+        const filters = [];
+        if (departmentId) filters.push(`gb_id LIKE '${departmentId}%'`);
+        if (searchTerm)   filters.push(`name_building LIKE '%${searchTerm}%'`);
+        if (districtName) filters.push(`dist_name = '${districtName}'`);
+        const cqlFilter = filters.join(' AND ');
 
         const params = new URLSearchParams({
             service: 'WFS',
@@ -227,13 +853,11 @@ export function createBuildingVectorLayer() {
             return clone;
         },
         zIndex: 110,
-        name: 'building-highlights' // Important: This name is used for click detection
+        name: 'building-highlights'
     });
 
     if (mapState.instance) {
         mapState.instance.addLayer(vectorLayer);
-        
-        // Setup click listener after adding layer
         setupBuildingClickListener();
     }
 }
@@ -244,7 +868,6 @@ export function displayBuildingsOnMap(geojsonData) {
         createBuildingVectorLayer();
     }
 
-    // Clear existing features
     buildingState.buildingSource.clear();
 
     if (!geojsonData || !geojsonData.features || geojsonData.features.length === 0) {
@@ -261,7 +884,6 @@ export function displayBuildingsOnMap(geojsonData) {
 
         buildingState.buildingSource.addFeatures(features);
 
-        // Zoom to extent of buildings
         if (features.length > 0) {
             const extent = buildingState.buildingSource.getExtent();
             mapState.instance.getView().fit(extent, {
@@ -307,30 +929,47 @@ export function populateDepartmentDropdown(dropdownId) {
 }
 
 // ==================== SEARCH BUILDINGS ====================
-export async function searchBuildings(departmentId, searchTerm) {
-    if (!departmentId && !searchTerm) {
-        showNotification('Please select a department or enter search term', 'warning');
+export async function searchBuildings(departmentId, searchTerm, onProgress = null, districtCode = '', districtName = '') {
+    if (!departmentId && !searchTerm && !districtCode) {
+        showNotification('Please select a district, department or search term', 'warning');
         return;
     }
 
+    const progress = (pct, label) => {
+        if (typeof onProgress === 'function') onProgress(pct, label);
+    };
+
     try {
+        progress(10, 'Fetching buildings...');
         showNotification('Searching buildings...', 'info');
-        
-        const data = await fetchBuildingData(departmentId, searchTerm);
-        
+
+        const data = await fetchBuildingData(departmentId, searchTerm, districtName);
+        progress(35, 'Displaying buildings on map...');
+
         displayBuildingsOnMap(data);
-        
+        progress(50, 'Updating results list...');
+
         updateBuildingResults(data.features || []);
-        
+
+        // Load GP (Gram Panchayat) WMS layer and perform spatial analysis
+        if (data.features && data.features.length > 0) {
+            progress(60, 'Loading Gram Panchayat boundaries...');
+            await loadGPLayer(data.features, districtCode);
+            progress(80, 'Analyzing GP coverage...');
+            analyzeGPWithBuildings(data.features);
+            progress(100, 'Complete!');
+        } else {
+            progress(100, 'Complete!');
+        }
+
         // Add Government Buildings to legend
         if (data.features && data.features.length > 0) {
             const existingLegendItems = getCustomLegendItems();
-            
-            // Check if Government Buildings legend already exists
-            const hasGovBuilding = existingLegendItems.some(item => 
+
+            const hasGovBuilding = existingLegendItems.some(item =>
                 item.label === 'Government Buildings'
             );
-            
+
             if (!hasGovBuilding) {
                 const newLegendItems = [
                     ...existingLegendItems,
@@ -344,7 +983,7 @@ export async function searchBuildings(departmentId, searchTerm) {
                 updateLegend();
             }
         }
-        
+
         return data;
     } catch (error) {
         console.error('Error searching buildings:', error);
@@ -491,6 +1130,9 @@ export function clearBuildingResults() {
     buildingState.filteredBuildings = [];
     buildingState.selectedDepartment = null;
 
+    // Remove GP analysis layer
+    removeGPAnalysisLayer();
+
     const resultsContainer = document.getElementById('building-results');
     const countBadge = document.getElementById('building-count');
 
@@ -514,14 +1156,57 @@ export function clearBuildingResults() {
 
     // Remove ALL building-related legends
     const existingLegendItems = getCustomLegendItems();
-    const filteredLegendItems = existingLegendItems.filter(item => 
-        item.label !== 'Government Buildings' && 
-        item.label !== 'All Government Buildings (WMS)'
+    const filteredLegendItems = existingLegendItems.filter(item =>
+        item.label !== 'Government Buildings' &&
+        item.label !== 'All Government Buildings (WMS)' &&
+        !item.label.includes('Villages with Buildings') &&
+        !item.label.includes('Villages without Buildings') &&
+        !item.label.includes('GPs with Buildings') &&
+        !item.label.includes('GPs without Buildings') &&
+        !item.label.includes('Gram Panchayat Boundaries')
     );
     setCustomLegendItems(filteredLegendItems);
     updateLegend();
 
     showNotification('Results cleared', 'info');
+}
+
+// ==================== GP COVERAGE DATA FOR REPORT ====================
+export function getGPCoverageData(districtName = '') {
+    const gpFeatures = gpLayerState.coverageSource?.getFeatures() || [];
+    const covered = [];
+    const uncovered = [];
+
+    gpFeatures.forEach(f => {
+        const gpNameRaw = f.get('gp_nam') || f.get('gp_name') || '-';
+
+        // Tehsil: join via teh_cod from tehsilMap (cg_tehsil_boundary)
+        const tehCod = f.get('teh_cod');
+        const tehsil = (tehCod && gpLayerState.tehsilMap.get(String(tehCod)))
+            || f.get('teh_e') || f.get('teh_nam') || '-';
+
+        const district = districtName || f.get('dist_nam') || f.get('dist_e') || '-';
+
+        if (gpLayerState.gpsWithBuildings.has(f)) {
+            // Get buildings from gpBuildingMap (spatial match, reliable)
+            const bList = gpLayerState.gpBuildingMap.get(f) || [];
+            covered.push({
+                name: gpNameRaw,
+                buildings: bList.length ? bList.map(b => b.name).join(' | ') : '-',
+                district: bList[0]?.district || district,
+                tehsil: bList[0]?.tehsil !== '-' ? bList[0].tehsil : tehsil
+            });
+        } else {
+            uncovered.push({
+                name: gpNameRaw,
+                buildings: '-',
+                district,
+                tehsil
+            });
+        }
+    });
+
+    return { covered, uncovered };
 }
 
 // ==================== EXPORT BUILDING DATA ====================
@@ -591,7 +1276,29 @@ export function exportBuildingAsExcel() {
 
         // Create workbook
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Building Report');
+        XLSX.utils.book_append_sheet(wb, ws, 'Buildings');
+
+        // Covered & Uncovered GP sheets
+        const selEl = document.getElementById('building-district');
+        const selDistName = selEl?.options[selEl.selectedIndex]?.text?.replace('-- All Districts --','').trim() || '';
+        const { covered, uncovered } = getGPCoverageData(selDistName);
+
+        const gpSheetData = (list) => list.map((r, i) => ({
+            'S.No': i + 1,
+            'GP Name': r.name,
+            'Building Name(s)': r.buildings,
+            'District': r.district,
+            'Tehsil': r.tehsil,
+            'Block': r.block
+        }));
+
+        const wsCovered = XLSX.utils.json_to_sheet(gpSheetData(covered));
+        wsCovered['!cols'] = [{ wch: 6 }, { wch: 30 }, { wch: 50 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, wsCovered, 'Covered GPs');
+
+        const wsUncovered = XLSX.utils.json_to_sheet(gpSheetData(uncovered));
+        wsUncovered['!cols'] = [{ wch: 6 }, { wch: 30 }, { wch: 50 }, { wch: 20 }, { wch: 20 }, { wch: 20 }];
+        XLSX.utils.book_append_sheet(wb, wsUncovered, 'Uncovered GPs');
 
         // Generate filename
         const filename = `Building_Report_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -690,6 +1397,47 @@ export function exportBuildingAsPDF() {
                 );
             }
         });
+
+        // Covered & Uncovered GP tables
+        const selEl = document.getElementById('building-district');
+        const selDistName = selEl?.options[selEl.selectedIndex]?.text?.replace('-- All Districts --','').trim() || '';
+        const { covered, uncovered } = getGPCoverageData(selDistName);
+
+        const gpRows = (list) => list.map((r, i) => [i + 1, r.name, r.buildings, r.district, r.tehsil]);
+
+        if (covered.length > 0) {
+            doc.addPage();
+            doc.setFontSize(14);
+            doc.setTextColor(16, 185, 129);
+            doc.text(`Covered Gram Panchayats (${covered.length})`, 14, 18);
+            doc.autoTable({
+                startY: 24,
+                head: [['#', 'GP Name', 'Building Name(s)', 'District', 'Tehsil']],
+                body: gpRows(covered),
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                headStyles: { fillColor: [16, 185, 129], textColor: [255, 255, 255], fontStyle: 'bold' },
+                columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 45 }, 2: { cellWidth: 90 }, 3: { cellWidth: 35 }, 4: { cellWidth: 35 } },
+                margin: { left: 14, right: 14 }
+            });
+        }
+
+        if (uncovered.length > 0) {
+            doc.addPage();
+            doc.setFontSize(14);
+            doc.setTextColor(107, 114, 128);
+            doc.text(`Uncovered Gram Panchayats (${uncovered.length})`, 14, 18);
+            doc.autoTable({
+                startY: 24,
+                head: [['#', 'GP Name', 'Building Name(s)', 'District', 'Tehsil']],
+                body: gpRows(uncovered),
+                theme: 'grid',
+                styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+                headStyles: { fillColor: [107, 114, 128], textColor: [255, 255, 255], fontStyle: 'bold' },
+                columnStyles: { 0: { cellWidth: 10, halign: 'center' }, 1: { cellWidth: 45 }, 2: { cellWidth: 90 }, 3: { cellWidth: 35 }, 4: { cellWidth: 35 } },
+                margin: { left: 14, right: 14 }
+            });
+        }
 
         // Generate filename
         const filename = `Building_Report_${new Date().toISOString().split('T')[0]}.pdf`;

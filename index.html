@@ -672,6 +672,13 @@
                     <!-- Search Filters -->
                     <div class="building-filters">
                         <div class="mb-3">
+                            <label for="building-district" class="form-label">Select District</label>
+                            <select class="form-select" id="building-district">
+                                <option value="">Loading districts...</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
                             <label for="building-department" class="form-label">Select Department</label>
                             <select class="form-select" id="building-department">
                                 <option value="" style="width: 200px;">Loading departments...</option>
@@ -709,6 +716,19 @@
                                     Search Buildings
                                 </button>
                             </div>
+                            <!-- Search Progress Bar -->
+                            <div class="col-12" id="search-progress-container" style="display:none;">
+                                <div style="background:#f1f5f9; border-radius:8px; padding:10px 12px;">
+                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                                        <span id="search-progress-label" style="font-size:12px; color:#475569; font-weight:500;">Searching...</span>
+                                        <span id="search-progress-percent" style="font-size:12px; font-weight:700; color:#10b981;">0%</span>
+                                    </div>
+                                    <div style="background:#e2e8f0; border-radius:999px; height:8px; overflow:hidden;">
+                                        <div id="search-progress-bar" style="height:100%; width:0%; background:linear-gradient(90deg,#10b981,#059669); border-radius:999px; transition:width 0.4s ease;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="col-6">
                                 <button class="btn btn-danger w-100" id="clear-building-results-btn">
                                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="width:16px; height:16px; margin-right:5px;">
@@ -989,40 +1009,97 @@
                         </div>
                     </div>
 
-                    <!-- Data Preview Table -->
-                    <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 20px;">
-                        <div style="padding: 15px; background: #f9fafb; border-bottom: 2px solid #e5e7eb; display: flex; justify-content: space-between; align-items: center;">
-                            <h6 style="margin: 0; color: #1f2937; font-weight: 600;">Data Preview</h6>
-                            <span style="font-size: 13px; color: #6b7280;">Showing all <strong id="preview-record-count">0</strong> records</span>
+                    <!-- Tab Buttons -->
+                    <div style="display:flex; gap:0; border-bottom:2px solid #e5e7eb; margin-bottom:0;">
+                        <button id="tab-btn-buildings" onclick="reportTabSwitch('buildings')" style="flex:1; padding:10px 8px; border:none; border-bottom:3px solid #5b69f5; background:#fff; font-weight:700; font-size:13px; color:#5b69f5; cursor:pointer;">
+                            🏢 Buildings <span id="tab-buildings-count" style="background:#6b7280;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:4px;">0</span>
+                        </button>
+                        <button id="tab-btn-covered" onclick="reportTabSwitch('covered')" style="flex:1; padding:10px 8px; border:none; border-bottom:3px solid transparent; background:#f9fafb; font-weight:600; font-size:13px; color:#374151; cursor:pointer;">
+                            ✅ Covered GPs <span id="tab-covered-count" style="background:#10b981;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:4px;">0</span>
+                        </button>
+                        <button id="tab-btn-uncovered" onclick="reportTabSwitch('uncovered')" style="flex:1; padding:10px 8px; border:none; border-bottom:3px solid transparent; background:#f9fafb; font-weight:600; font-size:13px; color:#374151; cursor:pointer;">
+                            ⬜ Uncovered GPs <span id="tab-uncovered-count" style="background:#6b7280;color:#fff;border-radius:10px;padding:1px 7px;font-size:12px;margin-left:4px;">0</span>
+                        </button>
+                    </div>
+
+                    <!-- Tab Panes -->
+                    <div style="background:white; border-radius:0 0 8px 8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:20px;">
+
+                        <!-- Buildings Pane -->
+                        <div id="pane-buildings" style="display:block;">
+                            <div style="max-height:360px; overflow-y:auto; overflow-x:auto;">
+                                <table class="table table-striped table-hover mb-0" style="font-size:13px;">
+                                    <thead style="position:sticky;top:0;background:#5b69f5;color:white;z-index:10;">
+                                        <tr>
+                                            <th style="padding:10px 8px;border:none;">S.No</th>
+                                            <th style="padding:10px 8px;border:none;min-width:200px;">Building Name</th>
+                                            <th style="padding:10px 8px;border:none;">District</th>
+                                            <th style="padding:10px 8px;border:none;">Tehsil</th>
+                                            <th style="padding:10px 8px;border:none;">Village</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="preview-table-body">
+                                        <tr><td colspan="5" style="text-align:center;padding:30px;color:#9ca3af;">No data to preview.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
-                        <div style="max-height: 450px; overflow-y: auto; overflow-x: auto;">
-                            <table class="table table-striped table-hover mb-0" id="building-preview-table" style="font-size: 13px;">
-                                <thead style="position: sticky; top: 0; background: #5b69f5; color: white; z-index: 10;">
-                                    <tr>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap;">S.No</th>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap;">Building ID</th>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap; min-width: 200px;">Building Name</th>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap;">District</th>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap;">Tehsil</th>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap;">Village</th>
-                                        <th style="padding: 12px 8px; border: none; white-space: nowrap;">Type</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="preview-table-body">
-                                    <tr>
-                                        <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
-                                            No data to preview. Please search for buildings first.
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                        <!-- Covered GPs Pane -->
+                        <div id="pane-covered" style="display:none;">
+                            <div style="max-height:360px; overflow-y:auto; overflow-x:auto;">
+                                <table class="table table-striped table-hover mb-0" style="font-size:13px;">
+                                    <thead style="position:sticky;top:0;background:#10b981;color:white;z-index:10;">
+                                        <tr>
+                                            <th style="padding:10px 8px;border:none;">S.No</th>
+                                            <th style="padding:10px 8px;border:none;min-width:150px;">GP Name</th>
+                                            <th style="padding:10px 8px;border:none;min-width:200px;">Building Name(s)</th>
+                                            <th style="padding:10px 8px;border:none;">District</th>
+                                            <th style="padding:10px 8px;border:none;">Tehsil</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="covered-gp-table-body">
+                                        <tr><td colspan="5" style="text-align:center;padding:30px;color:#9ca3af;">Search buildings to see covered GPs.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Uncovered GPs Pane -->
+                        <div id="pane-uncovered" style="display:none;">
+                            <div style="max-height:360px; overflow-y:auto; overflow-x:auto;">
+                                <table class="table table-striped table-hover mb-0" style="font-size:13px;">
+                                    <thead style="position:sticky;top:0;background:#6b7280;color:white;z-index:10;">
+                                        <tr>
+                                            <th style="padding:10px 8px;border:none;">S.No</th>
+                                            <th style="padding:10px 8px;border:none;min-width:150px;">GP Name</th>
+                                            <th style="padding:10px 8px;border:none;">District</th>
+                                            <th style="padding:10px 8px;border:none;">Tehsil</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="uncovered-gp-table-body">
+                                        <tr><td colspan="4" style="text-align:center;padding:30px;color:#9ca3af;">Search buildings to see uncovered GPs.</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Note -->
-                    <div class="alert alert-warning mt-3 mb-0" style="font-size: 13px; border-left: 4px solid #f59e0b;">
-                        <strong>⚠️ Note:</strong> The report will include all currently filtered buildings with complete details.
-                    </div>
+                    <script>
+                    function reportTabSwitch(tab) {
+                        var colors = {buildings:'#5b69f5', covered:'#10b981', uncovered:'#6b7280'};
+                        ['buildings','covered','uncovered'].forEach(function(t) {
+                            var pane = document.getElementById('pane-' + t);
+                            var btn  = document.getElementById('tab-btn-' + t);
+                            var active = t === tab;
+                            pane.style.display      = active ? 'block' : 'none';
+                            btn.style.borderBottom  = active ? '3px solid ' + colors[t] : '3px solid transparent';
+                            btn.style.background    = active ? '#fff' : '#f9fafb';
+                            btn.style.fontWeight    = active ? '700' : '600';
+                            btn.style.color         = active ? colors[t] : '#374151';
+                        });
+                    }
+                    </script>
                 </div>
                 
                 <!-- Footer with Export Buttons -->
