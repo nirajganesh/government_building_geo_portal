@@ -71,12 +71,15 @@ import {
 } from './modules/building.js';
 
 // ==================== CONFIGURATION ====================
+const _isDev = import.meta.env.DEV;
+const _base  = _isDev ? '' : 'https://cggis.cgstate.gov.in';
+
 export const API_CONFIG = {
-    baseUrl: 'https://cggis.cgstate.gov.in/giscg',
-    adminUrl: 'https://cggis.cgstate.gov.in/giscg/wmscgcog',
-    wfsUrl: 'https://cggis.cgstate.gov.in/giscg/wmscgcog',
-    authKey: 'd01de439-448c-4b48-ac5b-5700ab0274b8',
-    apiUrl: 'https://cggis.cgstate.gov.in/bisaglayerstatus/api/geoportal',
+    baseUrl:    `${_base}/giscg`,
+    adminUrl:   `${_base}/giscg/wmscgcog`,
+    wfsUrl:     `${_base}/giscg/wmscgcog`,
+    authKey:    'd01de439-448c-4b48-ac5b-5700ab0274b8',
+    apiUrl:     `${_base}/bisaglayerstatus/api/geoportal`,
     apiAuthKey: '106fb8fd-ace3-4d63-8eed-d7eb2f338e274'
 };
 
